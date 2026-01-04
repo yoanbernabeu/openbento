@@ -74,4 +74,37 @@ ${
 - \`src/App.tsx\` - Main component with all data embedded
 - \`src/index.css\` - Tailwind styles
 - \`public/assets/\` - Images (if any)
+- \`index.html\` - Includes OpenGraph meta tags for social sharing
+
+## Social Sharing (OpenGraph Meta Tags)
+
+Your exported page includes OpenGraph and Twitter Card meta tags for beautiful social media previews.
+
+### Configured Meta Tags
+
+The following meta tags are included in \`index.html\`:
+- **og:title** & **twitter:title** - Share title (defaults to your profile name)
+- **og:description** & **twitter:description** - Share description (defaults to your bio)
+- **og:image** & **twitter:image** - Share image (defaults to your avatar)
+- **og:url** - Canonical URL (if configured)
+- **og:site_name** - Site name (defaults to your profile name)
+- **twitter:card** - Card type (summary or summary_large_image)
+
+### Image Requirements
+
+For best results with social media previews:
+- **Recommended size**: 1200×630px (PNG or JPG format)
+- **Must be publicly accessible** - Data URLs (base64) won't work
+- **Use absolute URLs** - e.g., \`https://yourdomain.com/og-image.jpg\`
+
+### Testing Your Previews
+
+After deploying, validate your social media previews:
+- [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/)
+- [Twitter Card Validator](https://cards-dev.twitter.com/validator)
+- [LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/)
+
+### Updating Meta Tags
+
+To modify meta tags after export, edit \`index.html\` or reconfigure in OpenBento settings before exporting again.
 `;
