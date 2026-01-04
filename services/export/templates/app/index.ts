@@ -16,6 +16,7 @@ import {
   generateFooter,
   generateBackgroundBlur,
 } from './layouts';
+import { formatFollowerCount } from '@/socialPlatforms';
 
 export const generateAppTsx = (data: SiteData, imageMap: ImageMap, siteId?: string): string => {
   const { profile, blocks } = data;
@@ -50,8 +51,16 @@ export const generateAppTsx = (data: SiteData, imageMap: ImageMap, siteId?: stri
     }))
   );
 
+  const formattedSocialAccounts = profile.socialAccounts.map((acc) => ({
+    ...acc,
+    followerCount: formatFollowerCount(acc.followerCount),
+  }));
+
+  const { socialAccounts: _, ...rest } = profile;
+
   const profileJson = JSON.stringify({
-    ...profile,
+    ...rest,
+    socialAccounts: formattedSocialAccounts,
     avatarUrl: avatarSrc,
   });
 

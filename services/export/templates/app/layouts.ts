@@ -33,9 +33,18 @@ export const generateDesktopLayout = (params: LayoutParams): string => `
                 const url = platform?.buildUrl(acc.handle)
                 return (
                   <a key={acc.platform} href={url} target="_blank" rel="noopener noreferrer"
-                    className="w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center hover:scale-105 transition-transform"
+                    className="px-3 py-2 bg-white rounded-full shadow-md flex items-center justify-center hover:scale-105 transition-transform"
                     style={{ color: platform?.brandColor }}>
-                    {Icon && <Icon size={20} />}
+
+                    <span style={{ color: platform.brandColor }}>
+                      {Icon && <Icon size={20} />}
+                    </span>
+
+                    {profile.showFollowerCount && (
+                      <span className="ml-2 text-sm font-semibold text-gray-700">
+                        {acc.followerCount}
+                      </span>
+                    )}
                   </a>
                 )
               })}
@@ -84,9 +93,18 @@ export const generateMobileLayout = (params: LayoutParams): string => `
                 const url = platform?.buildUrl(acc.handle)
                 return (
                   <a key={acc.platform} href={url} target="_blank" rel="noopener noreferrer"
-                    className="w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center hover:-translate-y-0.5 transition-transform"
+                    className="px-3 py-2 bg-white rounded-full shadow-md flex items-center justify-center hover:-translate-y-0.5 transition-transform"
                     style={{ color: platform?.brandColor }}>
-                    {Icon && <Icon size={20} />}
+
+                    <span style={{ color: platform.brandColor }}>
+                      {Icon && <Icon size={20} />}
+                    </span>
+
+                    {profile.showFollowerCount && (
+                      <span className="ml-2 text-sm font-semibold text-gray-700">
+                        {acc.followerCount}
+                      </span>
+                    )}
                   </a>
                 )
               })}
