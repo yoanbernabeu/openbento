@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Loader2,
   Database,
+  Globe,
 } from 'lucide-react';
 import type { SocialPlatform, UserProfile, BlockData } from '../types';
 import { AVATAR_PLACEHOLDER } from '../constants';
@@ -37,7 +38,7 @@ type SettingsModalProps = {
   onBlocksChange?: (blocks: BlockData[]) => void;
 };
 
-type TabType = 'general' | 'social' | 'analytics' | 'json';
+type TabType = 'general' | 'social' | 'seo' | 'analytics' | 'json';
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
@@ -256,6 +257,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: 'general', label: 'General', icon: <User size={16} /> },
     { id: 'social', label: 'Social', icon: <Share2 size={16} /> },
+    { id: 'seo', label: 'SEO', icon: <Globe size={16} /> },
     { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={16} /> },
     { id: 'json', label: 'Raw JSON', icon: <Code size={16} /> },
   ];
@@ -734,6 +736,327 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     )}
                   </section>
                 </>
+              )}
+
+              {/* SEO TAB */}
+              {activeTab === 'seo' && (
+                <section className="space-y-6">
+                  <div>
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                      Social Sharing & SEO
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      Configure how your bento appears when shared on social media platforms like
+                      Twitter, Facebook, and LinkedIn.
+                    </p>
+                  </div>
+
+                  {/* OpenGraph Title */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-gray-600">
+                      Share Title
+                      <span className="text-gray-400 font-normal ml-1">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      aria-label="OpenGraph share title"
+                      value={profile.openGraph?.title || ''}
+                      onChange={(e) =>
+                        setProfile({
+                          ...profile,
+                          openGraph: { ...profile.openGraph, title: e.target.value || undefined },
+                        })
+                      }
+                      placeholder={profile.name || 'Your page title'}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent focus:bg-white transition-all focus:outline-none"
+                    />
+                    <p className="text-xs text-gray-400">
+                      Defaults to your profile name. Used as the title in social media previews.
+                    </p>
+                  </div>
+
+                  {/* OpenGraph Description */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-gray-600">
+                      Share Description
+                      <span className="text-gray-400 font-normal ml-1">(optional)</span>
+                    </label>
+                    <textarea
+                      aria-label="OpenGraph share description"
+                      value={profile.openGraph?.description || ''}
+                      onChange={(e) =>
+                        setProfile({
+                          ...profile,
+                          openGraph: {
+                            ...profile.openGraph,
+                            description: e.target.value || undefined,
+                          },
+                        })
+                      }
+                      placeholder={profile.bio || 'Describe your page...'}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent focus:bg-white transition-all focus:outline-none resize-none h-20"
+                    />
+                    <p className="text-xs text-gray-400">
+                      Defaults to your bio. Brief description shown in social media previews.
+                    </p>
+                  </div>
+
+                  {/* OpenGraph Image */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-gray-600">
+                      Share Image URL
+                      <span className="text-gray-400 font-normal ml-1">(recommended)</span>
+                    </label>
+                    <input
+                      type="url"
+                      aria-label="OpenGraph share image URL"
+                      value={profile.openGraph?.image || ''}
+                      onChange={(e) =>
+                        setProfile({
+                          ...profile,
+                          openGraph: { ...profile.openGraph, image: e.target.value || undefined },
+                        })
+                      }
+                      placeholder="https://example.com/og-image.jpg"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent focus:bg-white transition-all focus:outline-none font-mono text-xs"
+                    />
+                    {profile.openGraph?.image && (
+                      <div className="relative w-full h-32 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                        <img
+                          src={profile.openGraph.image}
+                          alt="OG preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-xs text-amber-800 font-medium mb-1">
+                        ⚠️ Image Requirements
+                      </p>
+                      <ul className="text-xs text-amber-700 space-y-0.5 list-disc list-inside">
+                        <li>Recommended size: 1200×630px (PNG or JPG)</li>
+                        <li>Must be publicly accessible (not data:// URLs)</li>
+                        <li>Defaults to your avatar if not set</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Canonical URL */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-gray-600">
+                      Canonical URL
+                      <span className="text-gray-400 font-normal ml-1">(optional)</span>
+                    </label>
+                    <input
+                      type="url"
+                      aria-label="Canonical URL"
+                      value={profile.openGraph?.url || ''}
+                      onChange={(e) =>
+                        setProfile({
+                          ...profile,
+                          openGraph: { ...profile.openGraph, url: e.target.value || undefined },
+                        })
+                      }
+                      placeholder="https://yourdomain.com"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent focus:bg-white transition-all focus:outline-none font-mono text-xs"
+                    />
+                    <p className="text-xs text-gray-400">
+                      The deployed URL of your page. Leave empty to set via environment variable.
+                    </p>
+                  </div>
+
+                  {/* Site Name */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-gray-600">
+                      Site Name
+                      <span className="text-gray-400 font-normal ml-1">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      aria-label="Site name"
+                      value={profile.openGraph?.siteName || ''}
+                      onChange={(e) =>
+                        setProfile({
+                          ...profile,
+                          openGraph: { ...profile.openGraph, siteName: e.target.value || undefined },
+                        })
+                      }
+                      placeholder={profile.name || 'My Bento'}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent focus:bg-white transition-all focus:outline-none"
+                    />
+                    <p className="text-xs text-gray-400">Defaults to your profile name.</p>
+                  </div>
+
+                  {/* Twitter Card Settings */}
+                  <div className="pt-4 border-t border-gray-100 space-y-4">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                      Twitter Card
+                    </h4>
+
+                    {/* Twitter Card Type */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-semibold text-gray-600">Card Type</label>
+                      <div className="flex gap-3">
+                        <label className="flex-1 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="twitterCard"
+                            value="summary"
+                            checked={
+                              (profile.openGraph?.twitterCard || 'summary_large_image') === 'summary'
+                            }
+                            onChange={(e) =>
+                              setProfile({
+                                ...profile,
+                                openGraph: {
+                                  ...profile.openGraph,
+                                  twitterCard: e.target.value as 'summary' | 'summary_large_image',
+                                },
+                              })
+                            }
+                            className="peer sr-only"
+                          />
+                          <div className="p-3 bg-gray-50 border-2 border-gray-200 rounded-xl peer-checked:border-violet-500 peer-checked:bg-violet-50 transition-all">
+                            <p className="text-sm font-semibold text-gray-900">Summary</p>
+                            <p className="text-xs text-gray-500">Square image preview</p>
+                          </div>
+                        </label>
+                        <label className="flex-1 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="twitterCard"
+                            value="summary_large_image"
+                            checked={
+                              (profile.openGraph?.twitterCard || 'summary_large_image') ===
+                              'summary_large_image'
+                            }
+                            onChange={(e) =>
+                              setProfile({
+                                ...profile,
+                                openGraph: {
+                                  ...profile.openGraph,
+                                  twitterCard: e.target.value as 'summary' | 'summary_large_image',
+                                },
+                              })
+                            }
+                            className="peer sr-only"
+                          />
+                          <div className="p-3 bg-gray-50 border-2 border-gray-200 rounded-xl peer-checked:border-violet-500 peer-checked:bg-violet-50 transition-all">
+                            <p className="text-sm font-semibold text-gray-900">Large Image</p>
+                            <p className="text-xs text-gray-500">Wide image preview</p>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Twitter Site Handle */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-semibold text-gray-600">
+                        Twitter Site Handle
+                        <span className="text-gray-400 font-normal ml-1">(optional)</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-400">@</span>
+                        <input
+                          type="text"
+                          aria-label="Twitter site handle"
+                          value={profile.openGraph?.twitterSite || ''}
+                          onChange={(e) =>
+                            setProfile({
+                              ...profile,
+                              openGraph: {
+                                ...profile.openGraph,
+                                twitterSite: e.target.value || undefined,
+                              },
+                            })
+                          }
+                          placeholder="yourusername"
+                          className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent focus:bg-white transition-all focus:outline-none"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        Twitter account for the website/brand
+                      </p>
+                    </div>
+
+                    {/* Twitter Creator Handle */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-semibold text-gray-600">
+                        Twitter Creator Handle
+                        <span className="text-gray-400 font-normal ml-1">(optional)</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-400">@</span>
+                        <input
+                          type="text"
+                          aria-label="Twitter creator handle"
+                          value={profile.openGraph?.twitterCreator || ''}
+                          onChange={(e) =>
+                            setProfile({
+                              ...profile,
+                              openGraph: {
+                                ...profile.openGraph,
+                                twitterCreator: e.target.value || undefined,
+                              },
+                            })
+                          }
+                          placeholder="yourpersonalhandle"
+                          className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent focus:bg-white transition-all focus:outline-none"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-400">Twitter account for the content creator</p>
+                    </div>
+                  </div>
+
+                  {/* Testing Tools */}
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-2">
+                    <h4 className="text-sm font-semibold text-blue-800 flex items-center gap-2">
+                      <CheckCircle size={16} />
+                      Test Your Meta Tags
+                    </h4>
+                    <p className="text-xs text-blue-700">
+                      After exporting and deploying, validate your social previews:
+                    </p>
+                    <ul className="text-xs text-blue-600 space-y-1">
+                      <li>
+                        •{' '}
+                        <a
+                          href="https://developers.facebook.com/tools/debug/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:text-blue-800"
+                        >
+                          Facebook Sharing Debugger
+                        </a>
+                      </li>
+                      <li>
+                        •{' '}
+                        <a
+                          href="https://cards-dev.twitter.com/validator"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:text-blue-800"
+                        >
+                          Twitter Card Validator
+                        </a>
+                      </li>
+                      <li>
+                        •{' '}
+                        <a
+                          href="https://www.linkedin.com/post-inspector/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:text-blue-800"
+                        >
+                          LinkedIn Post Inspector
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                </section>
               )}
 
               {/* SOCIAL TAB */}

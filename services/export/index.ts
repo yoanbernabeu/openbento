@@ -62,7 +62,7 @@ export const exportSite = async (
   zip.file('tailwind.config.js', generateTailwindConfig());
   zip.file('postcss.config.js', generatePostCSSConfig());
   zip.file('tsconfig.json', generateTSConfig());
-  zip.file('index.html', generateIndexHtml(data.profile.name));
+  zip.file('index.html', generateIndexHtml(data.profile));
   zip.file('DEPLOY.md', generateDeployMd({ name: data.profile.name, target: deploymentTarget }));
 
   // Source files

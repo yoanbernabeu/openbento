@@ -109,6 +109,21 @@ export interface UserProfile {
   };
   // Centralized social accounts configuration
   socialAccounts?: SocialAccount[];
+  // OpenGraph meta tags for social sharing
+  openGraph?: OpenGraphConfig;
+}
+
+export interface OpenGraphConfig {
+  // Primary meta tags
+  title?: string; // OG share title (defaults to profile.name)
+  description?: string; // OG share description (defaults to profile.bio)
+  image?: string; // OG image URL (publicly accessible, 1200x630px recommended)
+  url?: string; // Canonical URL of the page
+  siteName?: string; // Site name (defaults to profile.name)
+  // Twitter Card settings
+  twitterCard?: 'summary' | 'summary_large_image'; // Twitter card type (default: summary_large_image)
+  twitterSite?: string; // Twitter @username for the site
+  twitterCreator?: string; // Twitter @username for content creator
 }
 
 export interface SiteData {
