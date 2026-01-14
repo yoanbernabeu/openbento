@@ -4,6 +4,7 @@
 
 import { SiteData } from '../../../../types';
 import { ImageMap } from '../../imageExtractor';
+import { WEBP_CONVERTIBLE_REGEX, VIDEO_REGEX } from '../../helpers';
 import { generateImports } from './imports';
 import { generateTypes } from './types';
 import { generateSocialPlatformsConfig } from './socialPlatforms';
@@ -81,6 +82,26 @@ ${generateBlockComponent()}
 // Profile data
 const profile = ${profileJson}
 const blocks: BlockData[] = ${blocksJson}
+
+// Patterns for file type detection
+const WEBP_CONVERTIBLE_REGEX = /${WEBP_CONVERTIBLE_REGEX.source}/i
+const VIDEO_REGEX = /${VIDEO_REGEX.source}/i
+
+// Helper to get WebP URL for convertible formats (png, jpg, jpeg only)
+const getWebpUrl = (url: string | undefined): string | null => {
+  if (!url || !url.startsWith('/assets/')) return null
+  if (!WEBP_CONVERTIBLE_REGEX.test(url)) return null
+  return url.replace(WEBP_CONVERTIBLE_REGEX, '.webp')
+}
+
+// Pre-compute URLs and flags (avoids regex on every render)
+const avatarWebpUrl = getWebpUrl(profile.avatarUrl)
+const blockWebpUrls: Record<string, string | null> = {}
+const blockIsVideo: Record<string, boolean> = {}
+blocks.forEach(b => {
+  blockWebpUrls[b.id] = getWebpUrl(b.imageUrl)
+  blockIsVideo[b.id] = b.imageUrl ? VIDEO_REGEX.test(b.imageUrl) : false
+})
 ${generateAnalyticsHook(analyticsId)}
 ${generateMobileLayoutHelper()}
 // Sort blocks for mobile

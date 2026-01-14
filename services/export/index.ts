@@ -51,8 +51,8 @@ export const exportSite = async (
   const assetsFolder = zip.folder('public/assets');
   const srcFolder = zip.folder('src');
 
-  // Extract base64 images and get mapping
-  const imageMap = extractImages(data, assetsFolder);
+  // Extract base64 images and get mapping (also generates WebP versions)
+  const imageMap = await extractImages(data, assetsFolder);
 
   const deploymentTarget: ExportDeploymentTarget = opts?.deploymentTarget ?? 'vercel';
 

@@ -97,7 +97,7 @@ const Block = ({ block }: { block: BlockData }) => {
             <div className="flex-1 grid grid-cols-2 gap-1 overflow-hidden">
               {videos.slice(0, 4).map((v, i) => (
                 <a key={i} href={\`https://youtube.com/watch?v=\${v.id}\`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="relative overflow-hidden rounded bg-gray-100 group/vid">
-                  <img src={v.thumbnail} alt={v.title} className="w-full h-full object-cover" />
+                  <img src={v.thumbnail} alt={v.title} className="w-full h-full object-cover" loading="lazy" width="320" height="180" />
                   <div className="absolute inset-0 bg-black/20 group-hover/vid:bg-black/40 transition-colors flex items-center justify-center">
                     <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center opacity-0 group-hover/vid:opacity-100 transition-opacity">
                       <Play size={10} className="text-white ml-0.5" fill="white" />
@@ -129,10 +129,13 @@ const Block = ({ block }: { block: BlockData }) => {
         <div className="w-full h-full relative z-10">
           {block.type === BlockType.MEDIA && block.imageUrl ? (
             <div className="w-full h-full relative overflow-hidden">
-              {/\\.(mp4|webm|ogg|mov)$/i.test(block.imageUrl) ? (
+              {blockIsVideo[block.id] ? (
                 <video src={block.imageUrl} className="full-img" style={{ objectPosition: \`\${mediaPos.x}% \${mediaPos.y}%\` }} autoPlay loop muted playsInline />
               ) : (
-                <img src={block.imageUrl} alt={block.title || ''} className="full-img" style={{ objectPosition: \`\${mediaPos.x}% \${mediaPos.y}%\` }} />
+                <picture>
+                  {blockWebpUrls[block.id] && <source srcSet={blockWebpUrls[block.id]!} type="image/webp" />}
+                  <img src={block.imageUrl} alt={block.title || ''} className="full-img" style={{ objectPosition: \`\${mediaPos.x}% \${mediaPos.y}%\` }} loading="lazy" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" />
+                </picture>
               )}
               {block.title && <div className="media-overlay"><p className="media-title text-sm">{block.title}</p>{block.subtext && <p className="media-subtext">{block.subtext}</p>}</div>}
             </div>

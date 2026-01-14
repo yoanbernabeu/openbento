@@ -19,7 +19,10 @@ export const generateDesktopLayout = (params: LayoutParams): string => `
         <div className="hidden lg:flex">
           <div className="fixed left-0 top-0 w-[420px] h-screen flex flex-col justify-center items-start px-12">
             <div className="w-40 h-40 overflow-hidden bg-gray-100 mb-8" style={avatarStyle}>
-              <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full object-cover" />
+              <picture>
+                {avatarWebpUrl && <source srcSet={avatarWebpUrl} type="image/webp" />}
+                <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full object-cover" width="160" height="160" loading="eager" fetchpriority="high" />
+              </picture>
             </div>
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 mb-3">{profile.name}</h1>
             <p className="text-base text-gray-500 font-medium whitespace-pre-wrap max-w-xs">{profile.bio}</p>
@@ -76,7 +79,10 @@ export const generateMobileLayout = (params: LayoutParams): string => `
         <div className="lg:hidden">
           <div className="p-4 pt-8 flex flex-col items-center text-center">
             <div className="w-24 h-24 mb-4 overflow-hidden bg-gray-100" style={avatarStyle}>
-              <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full object-cover" />
+              <picture>
+                {avatarWebpUrl && <source srcSet={avatarWebpUrl} type="image/webp" />}
+                <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full object-cover" width="160" height="160" loading="eager" fetchpriority="high" />
+              </picture>
             </div>
             <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 mb-2">{profile.name}</h1>
             <p className="text-sm text-gray-500 font-medium whitespace-pre-wrap max-w-xs">{profile.bio}</p>
