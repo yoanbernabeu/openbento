@@ -20,6 +20,7 @@ import {
   List,
   Palette,
   CheckCircle2,
+  Droplets,
 } from 'lucide-react';
 import {
   buildSocialUrl,
@@ -307,7 +308,7 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
                       htmlFor="block-title-input"
                       className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2"
                     >
-                      Title
+                      {editingBlock.type === BlockType.FLUID_TEXT ? 'Text' : 'Title'}
                     </label>
                     <input
                       id="block-title-input"
@@ -315,7 +316,11 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 focus:ring-2 focus:ring-black/5 focus:border-black focus:outline-none transition-all font-medium"
                       value={editingBlock.title || ''}
                       onChange={(e) => updateBlock({ ...editingBlock, title: e.target.value })}
-                      placeholder="Label your block"
+                      placeholder={
+                        editingBlock.type === BlockType.FLUID_TEXT
+                          ? 'Enter text'
+                          : 'Label your block'
+                      }
                     />
                   </div>
                 )}
@@ -728,6 +733,27 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
               )}
 
               {/* 4. CONTENT FIELDS (Standard) */}
+              {editingBlock.type === BlockType.FLUID_TEXT && (
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                    Font Size ({Math.round((editingBlock.fluidTextFontSize ?? 0.33) * 100)}%)
+                  </label>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="0.8"
+                    step="0.01"
+                    value={editingBlock.fluidTextFontSize ?? 0.33}
+                    onChange={(e) =>
+                      updateBlock({
+                        ...editingBlock,
+                        fluidTextFontSize: Number(e.target.value),
+                      })
+                    }
+                    className="w-full h-2 cursor-pointer appearance-none rounded-lg bg-gray-200"
+                  />
+                </div>
+              )}
               {(editingBlock.type === BlockType.LINK ||
                 editingBlock.type === BlockType.MEDIA ||
                 editingBlock.type === BlockType.MAP) && (
@@ -913,6 +939,12 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   { type: BlockType.SOCIAL, label: 'Social', icon: Github, color: 'bg-violet-600' },
                   { type: BlockType.MEDIA, label: 'Media', icon: ImageIcon, color: 'bg-pink-600' },
                   { type: BlockType.TEXT, label: 'Note', icon: TypeIcon, color: 'bg-emerald-600' },
+                  {
+                    type: BlockType.FLUID_TEXT,
+                    label: 'Text Fluid Effect',
+                    icon: Droplets,
+                    color: 'bg-indigo-600',
+                  },
                   { type: BlockType.MAP, label: 'Map', icon: MapPin, color: 'bg-amber-500' },
                   {
                     type: BlockType.SPACER,

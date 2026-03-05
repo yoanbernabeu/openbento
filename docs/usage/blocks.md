@@ -1,6 +1,6 @@
 # Block Types
 
-OpenBento includes 7 block types to create your perfect bento layout.
+OpenBento includes 9 block types to create your perfect bento layout.
 
 ## Social Block
 
@@ -62,6 +62,24 @@ Add text content to your bento.
 - Quotes
 - Announcements
 - Contact info
+
+## Fluid Text Block
+
+Add a dynamic text effect powered by a GPU fluid simulation.
+
+**Features:**
+- Real-time WebGL fluid distortion
+- Text rendered as a fluid mask
+- Adjustable font size
+
+**How to use:**
+1. Add a Text Fluid Effect block
+2. Edit the text in the sidebar
+3. Adjust the Font Size slider
+
+**Tips:**
+- Best at 6×3 or 6×6 sizes
+- Keep the text short for the cleanest effect
 
 ## Media Block
 

@@ -3,6 +3,7 @@ import { BlockData, BlockType } from '../types';
 import { Youtube, Play, Loader2 } from 'lucide-react';
 import { getSocialPlatformOption, inferSocialPlatformFromUrl } from '../socialPlatforms';
 import { openSafeUrl, isValidYouTubeChannelId, isValidLocationString } from '../utils/security';
+import FluidTextEffect from './FluidTextEffect';
 
 // Apple TV style 3D tilt effect hook
 const useTiltEffect = (isEnabled: boolean = true) => {
@@ -464,6 +465,15 @@ const BlockPreview: React.FC<BlockPreviewProps> = ({
                   </p>
                 </div>
               )}
+            </div>
+          ) : block.type === BlockType.FLUID_TEXT ? (
+            <div className="w-full h-full pointer-events-auto">
+              <FluidTextEffect
+                text={block.title || 'Text'}
+                fontSize={block.fluidTextFontSize ?? 0.33}
+                colorClass={block.color}
+                customBackground={block.customBackground}
+              />
             </div>
           ) : isRichYoutube ? (
             /* YOUTUBE SINGLE */

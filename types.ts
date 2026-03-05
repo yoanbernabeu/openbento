@@ -1,6 +1,7 @@
 export enum BlockType {
   LINK = 'LINK',
   TEXT = 'TEXT',
+  FLUID_TEXT = 'FLUID_TEXT',
   MEDIA = 'MEDIA', // Images, GIFs, videos
   SOCIAL = 'SOCIAL',
   SOCIAL_ICON = 'SOCIAL_ICON', // Small icon-only social block for 9x9 grid
@@ -59,6 +60,7 @@ export interface BlockData {
   customBackground?: string; // Raw CSS value (hex or gradient)
   textColor?: string; // 'text-black' or 'text-white'
   rotation?: number; // Removed usage, kept for type safety if needed, or remove.
+  fluidTextFontSize?: number; // 0.1 - 0.8 scale for Fluid Text
 
   // Grid positioning (explicit placement)
   gridColumn?: number; // 1-based column start position

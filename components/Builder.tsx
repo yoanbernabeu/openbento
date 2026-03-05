@@ -631,6 +631,7 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
     const getSpans = () => {
       if (type === BlockType.SOCIAL_ICON) return { colSpan: 1, rowSpan: 1 };
       if (type === BlockType.SPACER) return { colSpan: 9, rowSpan: 1 };
+      if (type === BlockType.FLUID_TEXT) return { colSpan: 6, rowSpan: 3 };
       return { colSpan: 3, rowSpan: 3 }; // Regular blocks take 3x3 cells
     };
     const { colSpan, rowSpan } = getSpans();
@@ -647,7 +648,9 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
               ? 'Location'
               : type === BlockType.SPACER
                 ? 'Spacer'
-                : 'New Block',
+                : type === BlockType.FLUID_TEXT
+                  ? 'Fluid Text'
+                  : 'New Block',
       content: '',
       colSpan,
       rowSpan,
@@ -656,14 +659,17 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
           ? 'bg-transparent'
           : type === BlockType.SOCIAL_ICON
             ? 'bg-gray-100'
-            : 'bg-white',
-      textColor: 'text-gray-900',
+            : type === BlockType.FLUID_TEXT
+              ? 'bg-violet-500'
+              : 'bg-white',
+      textColor: type === BlockType.FLUID_TEXT ? 'text-white' : 'text-gray-900',
       gridColumn: gridPosition.col,
       gridRow: gridPosition.row,
       ...(type === BlockType.SOCIAL ? { socialPlatform: 'x' as const, socialHandle: '' } : {}),
       ...(type === BlockType.SOCIAL_ICON
         ? { socialPlatform: 'instagram' as const, socialHandle: '' }
         : {}),
+      ...(type === BlockType.FLUID_TEXT ? { fluidTextFontSize: 0.33 } : {}),
     };
     handleSetBlocks([...blocks, newBlock]);
     setEditingBlockId(newBlock.id);
