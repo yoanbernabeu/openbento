@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { BlockData, BlockType, SocialPlatform, UserProfile } from '../types';
 import { BASE_COLORS } from '../constants';
 import {
@@ -52,6 +52,7 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
 }) => {
   const [isFetching, setIsFetching] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const blockImageInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleBlockImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -59,8 +60,19 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
       const reader = new FileReader();
       reader.onloadend = () => {
         updateBlock({ ...editingBlock, imageUrl: reader.result as string });
+        e.target.value = '';
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveBlockImage = () => {
+    if (!editingBlock) return;
+
+    updateBlock({ ...editingBlock, imageUrl: undefined });
+
+    if (blockImageInputRef.current) {
+      blockImageInputRef.current.value = '';
     }
   };
 
@@ -751,6 +763,7 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
                         <input
                           id="block-img-upload"
                           type="file"
+                          ref={blockImageInputRef}
                           className="sr-only"
                           accept="image/*"
                           onChange={handleBlockImageUpload}
@@ -765,6 +778,38 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
                           </div>
                         )}
                       </label>
+                      {editingBlock.imageUrl && (
+                        <div className="mt-3 space-y-3">
+                          <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                            {editingBlock.type === BlockType.MEDIA &&
+                            /\.(mp4|webm|ogg|mov)$/i.test(editingBlock.imageUrl) ? (
+                              <video
+                                src={editingBlock.imageUrl}
+                                className="h-40 w-full object-cover"
+                                controls
+                                muted
+                                playsInline
+                              />
+                            ) : (
+                              <img
+                                src={editingBlock.imageUrl}
+                                alt="Block preview"
+                                className="h-40 w-full object-cover"
+                              />
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleRemoveBlockImage}
+                            className="w-full py-3 text-red-500 font-medium hover:bg-red-50 rounded-xl transition-colors flex items-center justify-center gap-2"
+                            aria-label="Remove image"
+                            title="Remove image"
+                          >
+                            <Trash2 size={18} />
+                            Remove image
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 

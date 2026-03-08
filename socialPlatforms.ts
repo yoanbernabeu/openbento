@@ -280,7 +280,7 @@ export const SOCIAL_PLATFORM_OPTIONS: SocialPlatformOption[] = [
   {
     id: 'spotify',
     label: 'Spotify',
-    icon: SiSpotify,
+    icon: Globe,
     brandIcon: SiSpotify,
     brandColor: '#1DB954',
     placeholder: 'spotify username',

@@ -2229,7 +2229,7 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
           }
         }}
         blocks={blocks}
-        setBlocks={handleSetBlocks}
+        onBlocksChange={handleSetBlocks}
       />
 
       {/* 4. AVATAR CROP MODAL */}
