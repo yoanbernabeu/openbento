@@ -38,6 +38,12 @@ Click on any block to edit:
 2. Adjust text color
 3. Add gradients or custom backgrounds
 
+You can also customize profile colors directly in the builder:
+
+- Click the background control in the top bar to edit the page background
+- Use the palette icon next to your name or bio to change text colors
+- Pick preset colors or open the inline custom color widget for HEX and eyedropper selection
+
 ## Step 6: Add More Blocks
 
 Build your layout by adding more blocks:

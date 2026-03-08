@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -34,6 +34,8 @@ type AnalyticsEvent = {
   language: string | null;
   screen_w: number | null;
   screen_h: number | null;
+  viewport_w?: number | null;
+  viewport_h?: number | null;
   visitor_id: string | null;
   session_id: string | null;
   duration_seconds: number | null;
@@ -84,50 +86,53 @@ const AnalyticsPage: React.FC = () => {
       .finally(() => setInitialLoading(false));
   }, []);
 
-  const fetchAnalytics = async (customDays?: number) => {
-    const daysToFetch = customDays ?? days;
-    if (!projectUrl || !dbPassword) {
-      setError('Please enter your Supabase URL and database password');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch('/__openbento/analytics/fetch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectUrl, dbPassword, days: daysToFetch }),
-      });
-
-      const data = await res.json();
-      if (data.ok) {
-        setEvents(data.events || []);
-        setIsConfigured(true);
-      } else {
-        setError(data.error || 'Failed to fetch analytics');
+  const fetchAnalytics = useCallback(
+    async (customDays?: number) => {
+      const daysToFetch = customDays ?? days;
+      if (!projectUrl || !dbPassword) {
+        setError('Please enter your Supabase URL and database password');
+        return;
       }
-    } catch (e) {
-      setError('Network error: ' + (e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await fetch('/__openbento/analytics/fetch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectUrl, dbPassword, days: daysToFetch }),
+        });
+
+        const data = await res.json();
+        if (data.ok) {
+          setEvents(data.events || []);
+          setIsConfigured(true);
+        } else {
+          setError(data.error || 'Failed to fetch analytics');
+        }
+      } catch (e) {
+        setError('Network error: ' + (e as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [days, dbPassword, projectUrl]
+  );
 
   // Auto-fetch when config is ready
   useEffect(() => {
     if (!initialLoading && projectUrl && dbPassword && !isConfigured) {
       fetchAnalytics();
     }
-  }, [initialLoading, projectUrl, dbPassword]);
+  }, [dbPassword, fetchAnalytics, initialLoading, isConfigured, projectUrl]);
 
   // Auto-refresh when days change (if already configured)
   useEffect(() => {
     if (isConfigured && projectUrl && dbPassword) {
       fetchAnalytics(days);
     }
-  }, [days]);
+  }, [days, dbPassword, fetchAnalytics, isConfigured, projectUrl]);
 
   // Compute analytics stats
   const stats = useMemo(() => {

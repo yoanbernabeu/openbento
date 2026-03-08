@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BlockData, BlockType, SocialPlatform, UserProfile } from '../types';
 import { BASE_COLORS } from '../constants';
+import ColorPickerWidget from './ColorPickerWidget';
 import {
   X,
   Link,
@@ -82,6 +83,18 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
 
   const resolvedSocialOption = getSocialPlatformOption(resolvedSocialPlatform);
   const resolvedSocialUrl = buildSocialUrl(resolvedSocialPlatform, resolvedSocialHandle);
+
+  const getContrastTextClass = (hexColor: string) => {
+    const sanitized = hexColor.replace('#', '');
+    if (sanitized.length !== 6) return 'text-gray-900';
+
+    const r = parseInt(sanitized.slice(0, 2), 16);
+    const g = parseInt(sanitized.slice(2, 4), 16);
+    const b = parseInt(sanitized.slice(4, 6), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+    return luminance > 0.6 ? 'text-gray-900' : 'text-white';
+  };
 
   const fetchLatestFromRSS = async () => {
     const cId = editingBlock?.channelId;
@@ -836,9 +849,11 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
                 {/* Solid Colors */}
                 <div className="space-y-2">
                   <fieldset>
-                    <legend className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
-                      Solid Colors
-                    </legend>
+                    <div className="flex items-center justify-between gap-3 mb-1.5">
+                      <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        Solid Colors + Custom
+                      </span>
+                    </div>
                     <div className="grid grid-cols-5 gap-3">
                       {BASE_COLORS.filter((c) => c.type === 'solid').map((c) => {
                         const active = isSelectedColor(c);
@@ -868,6 +883,38 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
                           </button>
                         );
                       })}
+                      <ColorPickerWidget
+                        value={
+                          editingBlock.customBackground?.startsWith('#')
+                            ? editingBlock.customBackground
+                            : '#6366F1'
+                        }
+                        active={!!editingBlock.customBackground?.startsWith('#')}
+                        onActivate={() => {
+                          if (editingBlock.customBackground?.startsWith('#')) return;
+                          const hex = '#6366F1';
+                          updateBlock({
+                            ...editingBlock,
+                            color: undefined,
+                            customBackground: hex,
+                            textColor: getContrastTextClass(hex),
+                          });
+                        }}
+                        ariaLabel="Choose a custom background color"
+                        title="Custom color"
+                        shape="circle"
+                        sizeClassName="w-full h-10"
+                        inline
+                        panelClassName="col-span-full"
+                        onChange={(hex) =>
+                          updateBlock({
+                            ...editingBlock,
+                            color: undefined,
+                            customBackground: hex,
+                            textColor: getContrastTextClass(hex),
+                          })
+                        }
+                      />
                     </div>
                   </fieldset>
                 </div>

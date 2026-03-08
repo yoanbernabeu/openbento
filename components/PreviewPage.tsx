@@ -99,6 +99,8 @@ const PreviewPage: React.FC = () => {
         backgroundAttachment: 'fixed',
       }
     : { backgroundColor: profile.backgroundColor || '#f8fafc' };
+  const nameColor = profile.nameColor || '#111827';
+  const bioColor = profile.bioColor || '#6B7280';
 
   const avatarStyle = getAvatarStyle(profile.avatarStyle);
 
@@ -137,10 +139,16 @@ const PreviewPage: React.FC = () => {
                 </div>
               </div>
               <div className="space-y-3 w-full max-w-xs">
-                <h1 className="text-4xl font-bold tracking-tight text-gray-900 leading-[1.1]">
+                <h1
+                  className="text-4xl font-bold tracking-tight leading-[1.1]"
+                  style={{ color: nameColor }}
+                >
                   {profile.name}
                 </h1>
-                <p className="text-base text-gray-500 font-medium leading-relaxed whitespace-pre-wrap">
+                <p
+                  className="text-base font-medium leading-relaxed whitespace-pre-wrap"
+                  style={{ color: bioColor }}
+                >
                   {profile.bio || '—'}
                 </p>
                 {renderSocialIcons()}
@@ -195,10 +203,16 @@ const PreviewPage: React.FC = () => {
                 </div>
               )}
             </div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 leading-none mb-2">
+            <h1
+              className="text-2xl font-extrabold tracking-tight leading-none mb-2"
+              style={{ color: nameColor }}
+            >
               {profile.name}
             </h1>
-            <p className="text-sm text-gray-500 font-medium whitespace-pre-wrap max-w-xs leading-relaxed">
+            <p
+              className="text-sm font-medium whitespace-pre-wrap max-w-xs leading-relaxed"
+              style={{ color: bioColor }}
+            >
               {profile.bio}
             </p>
             {profile.showSocialInHeader && profile.socialAccounts?.length > 0 && (

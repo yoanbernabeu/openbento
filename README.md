@@ -27,6 +27,7 @@
 
 - 🖱️ **Visual Drag & Drop** - Intuitive 9×9 grid editor. Drag, resize, and position blocks freely with real-time preview
 - 🎭 **Full Customization** - Colors, gradients, custom backgrounds. Avatars with borders, shadows & multiple shapes
+- 🎨 **Inline Color Pickers** - Background, avatar border, name, and bio colors with presets, custom HEX, and eyedropper support
 - 📦 **Export to React** - Download a complete Vite + React + TypeScript + Tailwind project, ready to deploy
 - 🚀 **Multi-Platform Deploy** - Auto-generated configs for Vercel, Netlify, GitHub Pages, Docker, VPS & Heroku
 - 🔒 **Privacy First** - No tracking, no account, no server required. All data stays in your browser localStorage
@@ -42,6 +43,12 @@ Track visits with your own Supabase instance:
 - Admin dashboard included
 
 See [ANALYTICS.md](ANALYTICS.md) for setup instructions.
+
+### Color Editing
+
+- Use the background action in the top bar to open a dedicated background editor
+- Name and bio now expose a palette button next to the edit pencil in the builder
+- Custom colors use an inline picker widget with presets, HEX input, and eyedropper support when the browser supports `EyeDropper`
 
 ### 🌐 26+ Social Platforms Supported
 

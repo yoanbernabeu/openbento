@@ -112,6 +112,8 @@ export interface UserProfile {
   backgroundColor?: string; // CSS color value (hex, rgb, etc.)
   backgroundImage?: string; // URL or data URL for background image
   backgroundBlur?: number; // Blur amount for background image (0-20)
+  nameColor?: string; // Custom color for the profile name
+  bioColor?: string; // Custom color for the profile bio
   analytics?: {
     enabled?: boolean;
     supabaseUrl?: string; // https://<project-ref>.supabase.co

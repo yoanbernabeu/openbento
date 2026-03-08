@@ -19,6 +19,7 @@ import {
 import type { SocialPlatform, UserProfile, BlockData } from '../types';
 import { AVATAR_PLACEHOLDER } from '../constants';
 import ImageCropModal from './ImageCropModal';
+import ColorPickerWidget from './ColorPickerWidget';
 import {
   buildSocialUrl,
   getSocialPlatformOption,
@@ -31,6 +32,8 @@ type SettingsModalProps = {
   onClose: () => void;
   profile: UserProfile;
   setProfile: (next: UserProfile | ((prev: UserProfile) => UserProfile)) => void;
+  initialTab?: TabType;
+  initialSection?: 'background';
   bentoName?: string;
   onBentoNameChange?: (name: string) => void;
   // For raw JSON editing
@@ -45,14 +48,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   profile,
   setProfile,
+  initialTab = 'general',
+  initialSection,
   bentoName,
   onBentoNameChange,
   blocks,
   onBlocksChange,
 }) => {
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const backgroundSectionRef = useRef<HTMLElement>(null);
   const [pendingAvatarSrc, setPendingAvatarSrc] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('general');
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
   // Social accounts state
   const [isAddingSocial, setIsAddingSocial] = useState(false);
@@ -76,6 +82,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [savedConfig, setSavedConfig] = useState<{ projectUrl?: string; anonKey?: string } | null>(
     null
   );
+
+  const currentBackgroundColor = profile.backgroundColor || '#F7F7F7';
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
+
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'general' || initialSection !== 'background') return;
+
+    const frame = window.requestAnimationFrame(() => {
+      backgroundSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isOpen, activeTab, initialSection]);
 
   // Load saved config on mount
   useEffect(() => {
@@ -353,7 +377,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   )}
 
                   {/* Profile */}
-                  <section className="space-y-4">
+                  <section ref={backgroundSectionRef} className="space-y-4">
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
                       Profile
                     </h3>
@@ -551,59 +575,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         Background Color
                       </label>
 
-                      {/* Color picker + Hex input row */}
-                      <div className="flex items-center gap-3">
-                        {/* Native color picker - large clickable area */}
-                        <div className="relative">
-                          <input
-                            type="color"
-                            aria-label="Background color picker"
-                            value={profile.backgroundColor || '#F7F7F7'}
-                            onChange={(e) =>
-                              setProfile({
-                                ...profile,
-                                backgroundColor: e.target.value,
-                                backgroundImage: undefined,
-                              })
-                            }
-                            className="w-12 h-12 rounded-xl border-2 border-gray-200 cursor-pointer hover:border-violet-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            title="Open color picker"
-                          />
-                        </div>
-
-                        {/* Hex input */}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-400 font-mono">#</span>
-                            <input
-                              type="text"
-                              aria-label="Background color hex code"
-                              value={(profile.backgroundColor || '#F7F7F7').replace('#', '')}
-                              onChange={(e) => {
-                                const val = e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
-                                if (val.length >= 3) {
-                                  setProfile({
-                                    ...profile,
-                                    backgroundColor: `#${val}`,
-                                    backgroundImage: undefined,
-                                  });
-                                }
-                              }}
-                              placeholder="F7F7F7"
-                              className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono uppercase focus:ring-2 focus:ring-violet-500 focus:border-transparent focus:outline-none"
-                              maxLength={6}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Preview swatch */}
-                        <div
-                          className="w-12 h-12 rounded-xl border-2 border-gray-200 shadow-inner"
-                          style={{ backgroundColor: profile.backgroundColor || '#F7F7F7' }}
-                          title={profile.backgroundColor || '#F7F7F7'}
-                        />
-                      </div>
-
                       {/* Preset colors */}
                       <div className="flex gap-2 flex-wrap">
                         {[
@@ -643,6 +614,62 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                             title={color}
                           />
                         ))}
+                        <ColorPickerWidget
+                          value={currentBackgroundColor}
+                          active={
+                            ![
+                              '#F7F7F7',
+                              '#ffffff',
+                              '#f0f0f0',
+                              '#e5e5e5',
+                              '#1a1a1a',
+                              '#0a0a0a',
+                              '#1e293b',
+                              '#0f172a',
+                              '#fef3c7',
+                              '#dbeafe',
+                              '#dcfce7',
+                              '#fce7f3',
+                            ].includes(currentBackgroundColor) && !profile.backgroundImage
+                          }
+                          onActivate={() => {
+                            if (
+                              ![
+                                '#F7F7F7',
+                                '#ffffff',
+                                '#f0f0f0',
+                                '#e5e5e5',
+                                '#1a1a1a',
+                                '#0a0a0a',
+                                '#1e293b',
+                                '#0f172a',
+                                '#fef3c7',
+                                '#dbeafe',
+                                '#dcfce7',
+                                '#fce7f3',
+                              ].includes(currentBackgroundColor) &&
+                              !profile.backgroundImage
+                            ) {
+                              return;
+                            }
+                            setProfile({
+                              ...profile,
+                              backgroundColor: '#8B5CF6',
+                              backgroundImage: undefined,
+                            });
+                          }}
+                          ariaLabel="Choose a custom background color"
+                          title="Custom color"
+                          inline
+                          panelClassName="basis-full"
+                          onChange={(hex) =>
+                            setProfile({
+                              ...profile,
+                              backgroundColor: hex,
+                              backgroundImage: undefined,
+                            })
+                          }
+                        />
                       </div>
                     </div>
 

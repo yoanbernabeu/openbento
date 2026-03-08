@@ -2,6 +2,7 @@ import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Circle, Square, RectangleHorizontal, Sun, Minus } from 'lucide-react';
 import type { AvatarStyle } from '../types';
+import ColorPickerWidget from './ColorPickerWidget';
 
 type AvatarStyleModalProps = {
   isOpen: boolean;
@@ -180,7 +181,7 @@ const AvatarStyleModal: React.FC<AvatarStyleModalProps> = ({
                     {/* Border color */}
                     <div className="flex items-center gap-3">
                       <span className="text-xs font-medium text-gray-500 w-16">Color</span>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap items-center">
                         {['#ffffff', '#000000', '#6366f1', '#ec4899', '#10b981', '#f59e0b'].map(
                           (color) => (
                             <button
@@ -195,6 +196,40 @@ const AvatarStyleModal: React.FC<AvatarStyleModalProps> = ({
                             />
                           )
                         )}
+                        <ColorPickerWidget
+                          value={currentStyle.borderColor || '#ffffff'}
+                          active={
+                            ![
+                              '#ffffff',
+                              '#000000',
+                              '#6366f1',
+                              '#ec4899',
+                              '#10b981',
+                              '#f59e0b',
+                            ].includes(currentStyle.borderColor || '#ffffff')
+                          }
+                          onActivate={() => {
+                            if (
+                              ![
+                                '#ffffff',
+                                '#000000',
+                                '#6366f1',
+                                '#ec4899',
+                                '#10b981',
+                                '#f59e0b',
+                              ].includes(currentStyle.borderColor || '#ffffff')
+                            ) {
+                              return;
+                            }
+                            updateStyle({ borderColor: '#8B5CF6' });
+                          }}
+                          ariaLabel="Choose a custom avatar border color"
+                          title="Custom border color"
+                          shape="circle"
+                          inline
+                          panelClassName="basis-full"
+                          onChange={(hex) => updateStyle({ borderColor: hex })}
+                        />
                       </div>
                     </div>
                   </motion.div>

@@ -21,8 +21,8 @@ export const generateDesktopLayout = (params: LayoutParams): string => `
             <div className="w-40 h-40 overflow-hidden bg-gray-100 mb-8" style={avatarStyle}>
               <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full object-cover" />
             </div>
-            <h1 className="text-4xl font-bold tracking-tight text-gray-900 mb-3">{profile.name}</h1>
-            <p className="text-base text-gray-500 font-medium whitespace-pre-wrap max-w-xs">{profile.bio}</p>
+            <h1 className="text-4xl font-bold tracking-tight mb-3" style={{ color: profile.nameColor || '#111827' }}>{profile.name}</h1>
+            <p className="text-base font-medium whitespace-pre-wrap max-w-xs" style={{ color: profile.bioColor || '#6B7280' }}>{profile.bio}</p>
             ${
               params.showSocialInHeader && params.hasSocialAccounts
                 ? `
@@ -78,8 +78,8 @@ export const generateMobileLayout = (params: LayoutParams): string => `
             <div className="w-24 h-24 mb-4 overflow-hidden bg-gray-100" style={avatarStyle}>
               <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full object-cover" />
             </div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 mb-2">{profile.name}</h1>
-            <p className="text-sm text-gray-500 font-medium whitespace-pre-wrap max-w-xs">{profile.bio}</p>
+            <h1 className="text-2xl font-extrabold tracking-tight mb-2" style={{ color: profile.nameColor || '#111827' }}>{profile.name}</h1>
+            <p className="text-sm font-medium whitespace-pre-wrap max-w-xs" style={{ color: profile.bioColor || '#6B7280' }}>{profile.bio}</p>
             ${
               params.showSocialInHeader && params.hasSocialAccounts
                 ? `
