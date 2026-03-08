@@ -95,6 +95,7 @@ export const createBentoFromJSON = async (
         gridVersion: template.gridVersion ?? GRID_VERSION,
         profile: {
           ...template.profile,
+          pageLayout: template.profile.pageLayout || 'bento',
           avatarUrl: template.profile.avatarUrl || AVATAR_PLACEHOLDER,
         },
         blocks: template.blocks.map((b) => ({
@@ -129,6 +130,7 @@ export const createBento = (name: string): SavedBento => {
         name: name || 'My Bento',
         bio: 'Digital creator & developer.\nBuilding awesome things.',
         avatarUrl: AVATAR_PLACEHOLDER,
+        pageLayout: 'bento',
         theme: 'light' as const,
         primaryColor: 'blue',
         showBranding: true,

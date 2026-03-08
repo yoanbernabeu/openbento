@@ -9,6 +9,7 @@ enum BlockType {
   TEXT = 'TEXT',
   MEDIA = 'MEDIA',
   SOCIAL = 'SOCIAL',
+  COLLECTION = 'COLLECTION',
   SOCIAL_ICON = 'SOCIAL_ICON',
   MAP = 'MAP',
   SPACER = 'SPACER'
@@ -38,6 +39,8 @@ interface BlockData {
   youtubeVideos?: Array<{ id: string; title: string; thumbnail: string }>
   socialPlatform?: SocialPlatform
   socialHandle?: string
+  collectionId?: string
+  expandedByDefault?: boolean
   zIndex?: number
 }
 `;

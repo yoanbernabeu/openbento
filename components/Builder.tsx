@@ -24,6 +24,8 @@ import { getMobileLayout, MOBILE_GRID_CONFIG } from '../utils/mobileLayout';
 import {
   Download,
   Layout,
+  List,
+  ChevronDown,
   Share2,
   X,
   Check,
@@ -45,18 +47,325 @@ import {
   Sparkles,
   Save,
   AlertCircle,
+  GripVertical,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
 
 interface BuilderProps {
   onBack?: () => void;
 }
+
+interface VerticalReorderItemProps {
+  block: BlockData;
+  normalizedBlock: BlockData;
+  blockHeight: number;
+  editingBlockId: string | null;
+  allBlocks: BlockData[];
+  expandedCollections: Record<string, boolean>;
+  handleResizeStart: (block: BlockData, e: React.PointerEvent<HTMLButtonElement>) => void;
+  setEditingBlockId: React.Dispatch<React.SetStateAction<string | null>>;
+  setIsSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setExpandedCollections: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  draggedBlockId: string | null;
+  setDraggedBlockId: React.Dispatch<React.SetStateAction<string | null>>;
+  moveBlockToCollection: (blockId: string, collectionId: string) => void;
+  deleteBlock: (id: string) => void;
+  duplicateBlock: (id: string) => void;
+  updateBlock: (updatedBlock: BlockData) => void;
+}
+
+const VerticalReorderItem: React.FC<VerticalReorderItemProps> = ({
+  block,
+  normalizedBlock,
+  blockHeight,
+  editingBlockId,
+  allBlocks,
+  expandedCollections,
+  handleResizeStart,
+  setEditingBlockId,
+  setIsSidebarOpen,
+  setExpandedCollections,
+  draggedBlockId,
+  setDraggedBlockId,
+  moveBlockToCollection,
+  deleteBlock,
+  duplicateBlock,
+  updateBlock,
+}) => {
+  const dragControls = useDragControls();
+  const longPressTimeoutRef = useRef<number | null>(null);
+
+  const clearLongPress = () => {
+    if (longPressTimeoutRef.current !== null) {
+      window.clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
+    }
+  };
+
+  const startLongPressDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    const target = event.target as HTMLElement | null;
+    if (
+      target?.closest(
+        'button, a, input, textarea, select, [role="button"], [contenteditable="true"]'
+      )
+    ) {
+      return;
+    }
+
+    clearLongPress();
+    const nativeEvent = event.nativeEvent;
+    longPressTimeoutRef.current = window.setTimeout(() => {
+      dragControls.start(nativeEvent as PointerEvent);
+      longPressTimeoutRef.current = null;
+    }, 250);
+  };
+
+  useEffect(() => clearLongPress, []);
+
+  const collectionChildren = isCollectionBlock(block)
+    ? getCollectionChildren(allBlocks, block.id)
+    : [];
+  const isCollectionExpanded = expandedCollections[block.id] ?? block.expandedByDefault !== false;
+  const itemStyle = isCollectionBlock(block)
+    ? { minHeight: `${blockHeight}px` }
+    : { height: `${blockHeight}px` };
+
+  return (
+    <Reorder.Item
+      value={block}
+      dragListener={false}
+      dragControls={dragControls}
+      className="list-none group"
+      whileDrag={{ scale: 1.01, zIndex: 40 }}
+      style={itemStyle}
+    >
+      <div
+        className={`relative ${isCollectionBlock(block) ? '' : 'h-full'}`}
+        onPointerDown={startLongPressDrag}
+        onPointerUp={clearLongPress}
+        onPointerLeave={clearLongPress}
+        onPointerCancel={clearLongPress}
+      >
+        <button
+          type="button"
+          aria-label={`Move ${block.title || 'block'}`}
+          onPointerDown={(event) => {
+            clearLongPress();
+            dragControls.start(event);
+          }}
+          draggable={!isCollectionBlock(block)}
+          onDragStart={(event) => {
+            if (isCollectionBlock(block)) {
+              event.preventDefault();
+              return;
+            }
+            clearLongPress();
+            setDraggedBlockId(block.id);
+            event.dataTransfer.effectAllowed = 'move';
+          }}
+          onDragEnd={() => setDraggedBlockId(null)}
+          className="absolute left-3 top-3 z-30 rounded-lg bg-white/90 px-2 py-1 text-gray-500 shadow-sm backdrop-blur-sm cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-blue-500 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+        >
+          <GripVertical size={14} />
+        </button>
+        {isCollectionBlock(block) ? (
+          <div
+            className={`rounded-[1.1rem] border border-gray-200 ${block.color || 'bg-white'} ${
+              block.textColor || 'text-gray-900'
+            } shadow-sm overflow-hidden ${
+              editingBlockId === block.id ? 'ring-2 ring-blue-500' : ''
+            }`}
+            style={block.customBackground ? { background: block.customBackground } : undefined}
+            onDragOver={(event) => {
+              if (draggedBlockId && draggedBlockId !== block.id) {
+                event.preventDefault();
+              }
+            }}
+            onDrop={(event) => {
+              if (!draggedBlockId || draggedBlockId === block.id) return;
+              event.preventDefault();
+              moveBlockToCollection(draggedBlockId, block.id);
+              setDraggedBlockId(null);
+            }}
+          >
+            <div className="flex items-center justify-between px-4 py-4">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setEditingBlockId(block.id);
+                  setIsSidebarOpen(true);
+                  setExpandedCollections((prev) => ({
+                    ...prev,
+                    [block.id]: !isCollectionExpanded,
+                  }));
+                }}
+                className="text-left min-w-0 flex-1"
+              >
+                <p className="text-sm font-bold truncate">{block.title || 'Collection'}</p>
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setEditingBlockId(block.id);
+                  setIsSidebarOpen(true);
+                  setExpandedCollections((prev) => ({
+                    ...prev,
+                    [block.id]: !isCollectionExpanded,
+                  }));
+                }}
+                className={`p-2 rounded-lg text-gray-500 transition-transform ${
+                  isCollectionExpanded ? 'rotate-180' : ''
+                }`}
+              >
+                <ChevronDown size={16} />
+              </button>
+            </div>
+
+            <AnimatePresence initial={false}>
+              {isCollectionExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.22, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-4 pb-4 space-y-3 border-t border-gray-100 bg-gray-50/80">
+                    {collectionChildren.length > 0 ? (
+                      collectionChildren.map((child) => {
+                        const normalizedChild =
+                          child.type === BlockType.SOCIAL_ICON
+                            ? { ...child, colSpan: 9, rowSpan: 2 }
+                            : { ...child, colSpan: 9, gridColumn: undefined, gridRow: undefined };
+                        const childHeight = Math.max(96, Math.min(320, child.rowSpan * 64));
+
+                        return (
+                          <div
+                            key={child.id}
+                            style={{ height: `${childHeight}px` }}
+                            className="pt-3"
+                          >
+                            <div className="relative h-full">
+                              <button
+                                type="button"
+                                aria-label={`Move ${child.title || 'block'}`}
+                                draggable
+                                onDragStart={(event) => {
+                                  setDraggedBlockId(child.id);
+                                  event.dataTransfer.effectAllowed = 'move';
+                                }}
+                                onDragEnd={() => setDraggedBlockId(null)}
+                                className="absolute left-3 top-6 z-30 rounded-lg bg-white/90 px-2 py-1 text-gray-500 shadow-sm backdrop-blur-sm cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-blue-500 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+                              >
+                                <GripVertical size={14} />
+                              </button>
+                              <Block
+                                block={{
+                                  ...normalizedChild,
+                                  gridColumn: undefined,
+                                  gridRow: undefined,
+                                }}
+                                isSelected={editingBlockId === child.id}
+                                isDragTarget={false}
+                                isDragging={false}
+                                enableResize={false}
+                                isResizing={false}
+                                onResizeStart={handleResizeStart}
+                                onEdit={(b) => {
+                                  setEditingBlockId(b.id);
+                                  setIsSidebarOpen(true);
+                                }}
+                                onDelete={deleteBlock}
+                                onDragStart={() => {}}
+                                onDragEnter={() => {}}
+                                onDragEnd={() => {}}
+                                onDrop={() => {}}
+                                onDuplicate={duplicateBlock}
+                                onInlineUpdate={updateBlock}
+                                enableTiltEffect={true}
+                                draggableEnabled={false}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="pt-3 text-sm text-gray-500">
+                        Assign blocks to this collection.
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        ) : (
+          <Block
+            block={{
+              ...normalizedBlock,
+              gridColumn: undefined,
+              gridRow: undefined,
+            }}
+            isSelected={editingBlockId === block.id}
+            isDragTarget={false}
+            isDragging={false}
+            enableResize={false}
+            isResizing={false}
+            onResizeStart={handleResizeStart}
+            onEdit={(b) => {
+              setEditingBlockId(b.id);
+              setIsSidebarOpen(true);
+            }}
+            onDelete={deleteBlock}
+            onDragStart={() => {}}
+            onDragEnter={() => {}}
+            onDragEnd={() => {}}
+            onDrop={() => {}}
+            onDuplicate={duplicateBlock}
+            onInlineUpdate={updateBlock}
+            enableTiltEffect={true}
+            draggableEnabled={false}
+          />
+        )}
+      </div>
+    </Reorder.Item>
+  );
+};
 
 const GRID_COLS = 9; // 9 columns for finer control (allows small social icons)
 const GRID_MAX_SEARCH_ROWS = 200;
 const MAX_ROW_SPAN = 50; // Allow tall blocks for scrollable content
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const getPageLayout = (profile?: UserProfile | null) => profile?.pageLayout || 'bento';
+const isCollectionBlock = (block: BlockData) => block.type === BlockType.COLLECTION;
+const getTopLevelVerticalBlocks = (blocks: BlockData[]) =>
+  blocks.filter((block) => !block.collectionId);
+const getCollectionChildren = (blocks: BlockData[], collectionId: string) =>
+  blocks.filter((block) => block.collectionId === collectionId);
+const removeVerticalOnlyBlocks = (blocks: BlockData[]) => {
+  const collectionIds = new Set(
+    blocks.filter((block) => isCollectionBlock(block)).map((block) => block.id)
+  );
+
+  return blocks
+    .filter((block) => !collectionIds.has(block.id))
+    .map((block) =>
+      collectionIds.has(block.collectionId || '') ? { ...block, collectionId: undefined } : block
+    );
+};
+const sortBlocksByPosition = (blocks: BlockData[]) =>
+  [...blocks].sort((a, b) => {
+    const aRow = a.gridRow ?? 999;
+    const bRow = b.gridRow ?? 999;
+    const aCol = a.gridColumn ?? 999;
+    const bCol = b.gridColumn ?? 999;
+    if (aRow !== bRow) return aRow - bRow;
+    return aCol - bCol;
+  });
 
 // Migrate blocks from old 3-col grid to new 9-col grid
 // Old blocks had colSpan 1-3, new blocks use colSpan 1-9
@@ -372,11 +681,14 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
   const [showDeployModal, setShowDeployModal] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showLayoutModal, setShowLayoutModal] = useState(false);
+  const [layoutChangeNotice, setLayoutChangeNotice] = useState<string | null>(null);
   const [showAvatarCropModal, setShowAvatarCropModal] = useState(false);
   const [showAvatarStyleModal, setShowAvatarStyleModal] = useState(false);
   const [showAIGeneratorModal, setShowAIGeneratorModal] = useState(false);
   const [pendingAvatarSrc, setPendingAvatarSrc] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
+  const [expandedCollections, setExpandedCollections] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const {
     state: siteData,
@@ -391,6 +703,9 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
 
   const profile = siteData.profile;
   const blocks = siteData.blocks;
+  const selectedPageLayout = getPageLayout(profile);
+  const sortedBlocks = sortBlocksByPosition(blocks);
+  const verticalTopLevelBlocks = getTopLevelVerticalBlocks(blocks);
 
   const [deployTarget, setDeployTarget] = useState<ExportDeploymentTarget>(() => {
     try {
@@ -467,6 +782,7 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const bioInputRef = useRef<HTMLTextAreaElement>(null);
+  const layoutNoticeTimeoutRef = useRef<number | null>(null);
 
   // Load bento on mount and migrate old grid format if needed
   useEffect(() => {
@@ -548,6 +864,26 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleManualSave]);
 
+  useEffect(() => {
+    return () => {
+      if (layoutNoticeTimeoutRef.current !== null) {
+        window.clearTimeout(layoutNoticeTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    setExpandedCollections((prev) => {
+      const next: Record<string, boolean> = {};
+      blocks.forEach((block) => {
+        if (isCollectionBlock(block)) {
+          next[block.id] = prev[block.id] ?? block.expandedByDefault !== false;
+        }
+      });
+      return next;
+    });
+  }, [blocks]);
+
   // Handle profile changes with auto-save
   const handleSetProfile = useCallback(
     (newProfile: UserProfile | ((prev: UserProfile) => UserProfile)) => {
@@ -562,14 +898,100 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
   const handleSetBlocks = useCallback(
     (newBlocks: BlockData[] | ((prev: BlockData[]) => BlockData[])) => {
       const updated = typeof newBlocks === 'function' ? newBlocks(blocks) : newBlocks;
-      const normalized = ensureBlocksHavePositions(updated);
-      const resolved = resolveOverlaps(normalized);
+      const shouldPreserveOrder = getPageLayout(profile) === 'vertical-links';
+      const nextBlocks = shouldPreserveOrder
+        ? updated
+        : resolveOverlaps(ensureBlocksHavePositions(updated));
 
       // Ενημερώνουμε το ενιαίο state (snapshot)
-      setSiteData({ profile, blocks: resolved });
-      if (profile) autoSave(profile, resolved);
+      setSiteData({ profile, blocks: nextBlocks });
+      if (profile) autoSave(profile, nextBlocks);
     },
     [profile, blocks, setSiteData, autoSave]
+  );
+
+  const showLayoutResetNotice = useCallback((layoutName: string) => {
+    setLayoutChangeNotice(
+      `${layoutName} applied. The layout arrangement was reset for compatibility.`
+    );
+    if (layoutNoticeTimeoutRef.current !== null) {
+      window.clearTimeout(layoutNoticeTimeoutRef.current);
+    }
+    layoutNoticeTimeoutRef.current = window.setTimeout(() => {
+      setLayoutChangeNotice(null);
+      layoutNoticeTimeoutRef.current = null;
+    }, 3500);
+  }, []);
+
+  const applyLayoutChange = useCallback(
+    (nextLayout: UserProfile['pageLayout']) => {
+      if (!profile) return;
+
+      const nextBlocks =
+        nextLayout === 'vertical-links'
+          ? sortBlocksByPosition(blocks)
+          : removeVerticalOnlyBlocks(blocks);
+      const nextProfile = { ...profile, pageLayout: nextLayout };
+
+      setSiteData({ profile: nextProfile, blocks: nextBlocks });
+      autoSave(nextProfile, nextBlocks);
+    },
+    [profile, blocks, setSiteData, autoSave]
+  );
+
+  const rebuildVerticalBlocks = useCallback(
+    (nextTopLevelBlocks: BlockData[]) => {
+      const rebuilt: BlockData[] = [];
+      nextTopLevelBlocks.forEach((topLevelBlock) => {
+        rebuilt.push(topLevelBlock);
+        if (isCollectionBlock(topLevelBlock)) {
+          rebuilt.push(...getCollectionChildren(blocks, topLevelBlock.id));
+        }
+      });
+      return rebuilt;
+    },
+    [blocks]
+  );
+
+  const moveBlockToCollection = useCallback(
+    (blockId: string, collectionId: string) => {
+      const sourceBlock = blocks.find((block) => block.id === blockId);
+      const collectionBlock = blocks.find((block) => block.id === collectionId);
+      if (!sourceBlock || !collectionBlock || sourceBlock.type === BlockType.COLLECTION) return;
+
+      const remaining = blocks.filter((block) => block.id !== blockId);
+      const collectionChildren = getCollectionChildren(remaining, collectionId);
+      const lastChildId = collectionChildren[collectionChildren.length - 1]?.id;
+      const insertIndex =
+        lastChildId !== undefined
+          ? remaining.findIndex((block) => block.id === lastChildId) + 1
+          : remaining.findIndex((block) => block.id === collectionId) + 1;
+
+      const nextBlocks = [...remaining];
+      nextBlocks.splice(insertIndex, 0, { ...sourceBlock, collectionId });
+      handleSetBlocks(nextBlocks);
+    },
+    [blocks, handleSetBlocks]
+  );
+
+  const moveBlockToRoot = useCallback(
+    (blockId: string, slotIndex: number) => {
+      const sourceBlock = blocks.find((block) => block.id === blockId);
+      if (!sourceBlock || sourceBlock.type === BlockType.COLLECTION) return;
+
+      const remaining = blocks.filter((block) => block.id !== blockId);
+      const topLevelBlocks = getTopLevelVerticalBlocks(remaining);
+      const targetBlock = topLevelBlocks[slotIndex];
+      const insertIndex =
+        targetBlock !== undefined
+          ? remaining.findIndex((block) => block.id === targetBlock.id)
+          : remaining.length;
+
+      const nextBlocks = [...remaining];
+      nextBlocks.splice(insertIndex, 0, { ...sourceBlock, collectionId: undefined });
+      handleSetBlocks(nextBlocks);
+    },
+    [blocks, handleSetBlocks]
   );
 
   // Note: Block positioning is handled when blocks are created (addBlock function)
@@ -630,6 +1052,7 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
     // SPACER: full width (9 cols)
     const getSpans = () => {
       if (type === BlockType.SOCIAL_ICON) return { colSpan: 1, rowSpan: 1 };
+      if (type === BlockType.COLLECTION) return { colSpan: 9, rowSpan: 2 };
       if (type === BlockType.SPACER) return { colSpan: 9, rowSpan: 1 };
       return { colSpan: 3, rowSpan: 3 }; // Regular blocks take 3x3 cells
     };
@@ -641,13 +1064,15 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
       title:
         type === BlockType.SOCIAL
           ? 'X'
-          : type === BlockType.SOCIAL_ICON
-            ? ''
-            : type === BlockType.MAP
-              ? 'Location'
-              : type === BlockType.SPACER
-                ? 'Spacer'
-                : 'New Block',
+          : type === BlockType.COLLECTION
+            ? 'New Collection'
+            : type === BlockType.SOCIAL_ICON
+              ? ''
+              : type === BlockType.MAP
+                ? 'Location'
+                : type === BlockType.SPACER
+                  ? 'Spacer'
+                  : 'New Block',
       content: '',
       colSpan,
       rowSpan,
@@ -661,6 +1086,7 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
       gridColumn: gridPosition.col,
       gridRow: gridPosition.row,
       ...(type === BlockType.SOCIAL ? { socialPlatform: 'x' as const, socialHandle: '' } : {}),
+      ...(type === BlockType.COLLECTION ? { expandedByDefault: true } : {}),
       ...(type === BlockType.SOCIAL_ICON
         ? { socialPlatform: 'instagram' as const, socialHandle: '' }
         : {}),
@@ -687,9 +1113,18 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
   };
 
   const deleteBlock = (id: string) => {
-    const remaining = blocks.filter((b) => b.id !== id);
+    const blockToDelete = blocks.find((b) => b.id === id);
+    const remaining = blocks
+      .filter((b) => b.id !== id)
+      .map((b) =>
+        blockToDelete?.type === BlockType.COLLECTION && b.collectionId === id
+          ? { ...b, collectionId: undefined }
+          : b
+      );
     // Reflow to compact the grid after deletion
-    handleSetBlocks(reflowGrid(remaining));
+    handleSetBlocks(
+      getPageLayout(profile) === 'vertical-links' ? remaining : reflowGrid(remaining)
+    );
     if (editingBlockId === id) setEditingBlockId(null);
   };
 
@@ -1204,6 +1639,15 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
       return;
     }
 
+    if (selectedPageLayout === 'vertical-links') {
+      const reorderedBlocks = [...blocks];
+      const [movedBlock] = reorderedBlocks.splice(sourceIndex, 1);
+      reorderedBlocks.splice(targetIndex, 0, movedBlock);
+      handleSetBlocks(reorderedBlocks);
+      handleDragEnd();
+      return;
+    }
+
     const sourceBlock = blocks[sourceIndex];
     const targetBlock = blocks[targetIndex];
 
@@ -1245,28 +1689,6 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
     handleSetBlocks(newBlocks);
     handleDragEnd();
   };
-
-  /* const handleDropAtSlot = (slotIndex: number) => {
-    if (!draggedBlockId) {
-      handleDragEnd();
-      return;
-    }
-    const sourceIndex = blocks.findIndex((b) => b.id === draggedBlockId);
-    if (sourceIndex === -1) {
-      handleDragEnd();
-      return;
-    }
-
-    const newBlocks = [...blocks];
-    const [movedBlock] = newBlocks.splice(sourceIndex, 1);
-
-    // Adjust target index if source was before target
-    const adjustedIndex = sourceIndex < slotIndex ? slotIndex - 1 : slotIndex;
-    newBlocks.splice(adjustedIndex, 0, movedBlock);
-
-    handleSetBlocks(newBlocks);
-    handleDragEnd();
-  }; */
 
   const getGridCellFromPointer = useCallback((clientX: number, clientY: number) => {
     const grid = gridRef.current;
@@ -1486,6 +1908,18 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
                   <Smartphone size={16} />
                 </button>
               </div>
+              <button
+                type="button"
+                aria-label="Change page layout"
+                onClick={() => setShowLayoutModal(true)}
+                className="ml-2 flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {selectedPageLayout === 'bento' ? <Layout size={16} /> : <List size={16} />}
+                <span className="hidden sm:inline">
+                  {selectedPageLayout === 'bento' ? 'Bento' : 'Vertical Links'}
+                </span>
+                <ChevronDown size={14} className="text-gray-400" />
+              </button>
             </div>
 
             {/* Actions Pill */}
@@ -1589,8 +2023,23 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
           </div>
         </nav>
 
+        <AnimatePresence>
+          {layoutChangeNotice && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="fixed top-24 left-1/2 -translate-x-1/2 z-40 pointer-events-none"
+            >
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/95 px-4 py-3 shadow-sm backdrop-blur-sm text-sm text-amber-900">
+                <span>{layoutChangeNotice}</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* LEFT: Profile Header (Fixed on Desktop) */}
-        {viewMode === 'desktop' && (
+        {viewMode === 'desktop' && selectedPageLayout === 'bento' && (
           <div className="hidden lg:flex fixed left-0 top-0 w-[420px] h-screen flex-col justify-center items-start px-12 z-10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -1760,22 +2209,453 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
           <div className={`max-w-[1600px] mx-auto`}>
             {/* RIGHT: Grid (Scrollable or Mobile Frame) */}
             <div
-              className={`p-4 lg:p-12 pt-24 lg:pt-24 transition-all duration-300 ${viewMode === 'desktop' ? 'lg:ml-[420px]' : ''} ${viewMode === 'mobile' ? 'flex justify-center items-start min-h-screen bg-gray-100/50' : ''}`}
+              className={`p-4 lg:p-12 pt-24 lg:pt-24 transition-all duration-300 ${
+                viewMode === 'desktop' && selectedPageLayout === 'bento' ? 'lg:ml-[420px]' : ''
+              } ${viewMode === 'mobile' ? 'flex justify-center items-start min-h-screen bg-gray-100/50' : ''}`}
             >
-              {viewMode === 'mobile' ? (
+              {selectedPageLayout === 'vertical-links' ? (
+                (() => {
+                  const verticalContent = (
+                    <div className="relative z-10 mx-auto w-full max-w-2xl">
+                      <div className="px-4 pt-8 pb-6 flex flex-col items-center text-center">
+                        <div className="relative group mb-5">
+                          <motion.div
+                            whileHover={viewMode === 'desktop' ? { scale: 1.02 } : undefined}
+                            className={getAvatarContainerClasses(profile.avatarStyle)}
+                            style={getAvatarContainerStyle(profile.avatarStyle)}
+                          >
+                            {profile.avatarUrl ? (
+                              <img
+                                src={profile.avatarUrl}
+                                alt={profile.name}
+                                className={getAvatarClasses(profile.avatarStyle)}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl font-bold">
+                                {profile.name.charAt(0)}
+                              </div>
+                            )}
+                            {viewMode === 'desktop' && (
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                                <button
+                                  type="button"
+                                  aria-label="Change avatar image"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    avatarInputRef.current?.click();
+                                  }}
+                                  className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors focus:outline-none focus:ring-2 focus:ring-white"
+                                  title="Change image"
+                                >
+                                  <Camera size={22} className="text-white" />
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label="Edit avatar style"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowAvatarStyleModal(true);
+                                  }}
+                                  className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors focus:outline-none focus:ring-2 focus:ring-white"
+                                  title="Edit style"
+                                >
+                                  <Palette size={22} className="text-white" />
+                                </button>
+                              </div>
+                            )}
+                          </motion.div>
+                          {viewMode === 'desktop' && (
+                            <input
+                              ref={avatarInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleAvatarUpload}
+                              className="hidden"
+                            />
+                          )}
+                        </div>
+
+                        {viewMode === 'desktop' && editingField === 'name' ? (
+                          <input
+                            ref={nameInputRef}
+                            type="text"
+                            aria-label="Edit your name"
+                            value={tempName}
+                            onChange={(e) => setTempName(e.target.value)}
+                            onBlur={saveNameEdit}
+                            onKeyDown={handleNameKeyDown}
+                            className="text-3xl font-extrabold tracking-tight text-gray-900 bg-transparent border-b-2 border-violet-500 outline-none text-center w-full max-w-md leading-none mb-2"
+                            placeholder="Your name"
+                          />
+                        ) : (
+                          <div
+                            className={`flex items-center gap-2 mb-2 ${viewMode === 'desktop' ? 'group cursor-pointer' : ''}`}
+                            onClick={viewMode === 'desktop' ? startEditingName : undefined}
+                          >
+                            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 leading-none">
+                              {profile.name}
+                            </h1>
+                            {viewMode === 'desktop' && (
+                              <Pencil
+                                size={16}
+                                className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                              />
+                            )}
+                          </div>
+                        )}
+
+                        {viewMode === 'desktop' && editingField === 'bio' ? (
+                          <textarea
+                            ref={bioInputRef}
+                            aria-label="Edit your bio"
+                            value={tempBio}
+                            onChange={(e) => setTempBio(e.target.value)}
+                            onBlur={saveBioEdit}
+                            onKeyDown={handleBioKeyDown}
+                            className="text-sm text-gray-500 font-medium whitespace-pre-wrap max-w-md leading-relaxed bg-transparent border-b-2 border-violet-500 outline-none w-full text-center resize-none"
+                            rows={3}
+                            placeholder="Write something about yourself..."
+                          />
+                        ) : (
+                          <p
+                            className={`text-sm text-gray-500 font-medium whitespace-pre-wrap max-w-md leading-relaxed ${viewMode === 'desktop' ? 'group cursor-pointer hover:text-gray-700 transition-colors flex items-start justify-center gap-2' : ''}`}
+                            onClick={viewMode === 'desktop' ? startEditingBio : undefined}
+                          >
+                            <span>{profile.bio || 'Click to add bio...'}</span>
+                            {viewMode === 'desktop' && (
+                              <Pencil
+                                size={14}
+                                className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 shrink-0"
+                              />
+                            )}
+                          </p>
+                        )}
+                        {profile.showSocialInHeader &&
+                          profile.socialAccounts &&
+                          profile.socialAccounts.length > 0 && (
+                            <div className="flex flex-wrap justify-center gap-3 mt-4">
+                              {profile.socialAccounts.map((account) => {
+                                const option = getSocialPlatformOption(account.platform);
+                                if (!option) return null;
+                                const BrandIcon = option.brandIcon;
+                                const FallbackIcon = option.icon;
+                                const url = buildSocialUrl(account.platform, account.handle);
+                                const showCount =
+                                  profile.showFollowerCount && account.followerCount;
+                                return (
+                                  <a
+                                    key={account.platform}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`${showCount ? 'px-3 py-2' : 'w-10 h-10'} bg-white rounded-full shadow-md flex items-center justify-center gap-2 font-semibold text-gray-900 transition-transform hover:-translate-y-0.5`}
+                                    title={option.label}
+                                  >
+                                    {BrandIcon ? (
+                                      <span style={{ color: option.brandColor }}>
+                                        <BrandIcon size={20} />
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-600">
+                                        <FallbackIcon size={20} />
+                                      </span>
+                                    )}
+                                    {showCount && (
+                                      <span className="text-sm font-semibold text-gray-900">
+                                        {formatFollowerCount(account.followerCount)}
+                                      </span>
+                                    )}
+                                  </a>
+                                );
+                              })}
+                            </div>
+                          )}
+                      </div>
+
+                      <div className="px-4 pb-8">
+                        {viewMode === 'desktop' ? (
+                          <div className="flex flex-col gap-4">
+                            <div
+                              className={`h-3 rounded-full transition-all ${
+                                draggedBlockId
+                                  ? 'bg-violet-100 hover:bg-violet-200'
+                                  : 'bg-transparent'
+                              }`}
+                              onDragOver={(event) => {
+                                if (draggedBlockId) event.preventDefault();
+                              }}
+                              onDrop={(event) => {
+                                if (!draggedBlockId) return;
+                                event.preventDefault();
+                                moveBlockToRoot(draggedBlockId, 0);
+                                setDraggedBlockId(null);
+                              }}
+                            />
+                            <Reorder.Group
+                              axis="y"
+                              values={verticalTopLevelBlocks}
+                              onReorder={(nextBlocks) =>
+                                handleSetBlocks(rebuildVerticalBlocks(nextBlocks))
+                              }
+                              className="flex flex-col gap-4"
+                            >
+                              {verticalTopLevelBlocks.map((block) => {
+                                const normalizedBlock =
+                                  block.type === BlockType.SOCIAL_ICON
+                                    ? { ...block, colSpan: 9, rowSpan: 2 }
+                                    : {
+                                        ...block,
+                                        colSpan: 9,
+                                        gridColumn: undefined,
+                                        gridRow: undefined,
+                                      };
+                                const blockHeight = Math.max(96, Math.min(320, block.rowSpan * 64));
+
+                                return (
+                                  <VerticalReorderItem
+                                    key={block.id}
+                                    block={block}
+                                    normalizedBlock={normalizedBlock}
+                                    blockHeight={blockHeight}
+                                    editingBlockId={editingBlockId}
+                                    allBlocks={blocks}
+                                    expandedCollections={expandedCollections}
+                                    handleResizeStart={handleResizeStart}
+                                    setEditingBlockId={setEditingBlockId}
+                                    setIsSidebarOpen={setIsSidebarOpen}
+                                    setExpandedCollections={setExpandedCollections}
+                                    draggedBlockId={draggedBlockId}
+                                    setDraggedBlockId={setDraggedBlockId}
+                                    moveBlockToCollection={moveBlockToCollection}
+                                    deleteBlock={deleteBlock}
+                                    duplicateBlock={duplicateBlock}
+                                    updateBlock={updateBlock}
+                                  />
+                                );
+                              })}
+                            </Reorder.Group>
+                            <div
+                              className={`h-3 rounded-full transition-all ${
+                                draggedBlockId
+                                  ? 'bg-violet-100 hover:bg-violet-200'
+                                  : 'bg-transparent'
+                              }`}
+                              onDragOver={(event) => {
+                                if (draggedBlockId) event.preventDefault();
+                              }}
+                              onDrop={(event) => {
+                                if (!draggedBlockId) return;
+                                event.preventDefault();
+                                moveBlockToRoot(draggedBlockId, verticalTopLevelBlocks.length);
+                                setDraggedBlockId(null);
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {verticalTopLevelBlocks.map((block) => {
+                              if (isCollectionBlock(block)) {
+                                const children = getCollectionChildren(blocks, block.id);
+                                const isExpanded =
+                                  expandedCollections[block.id] ??
+                                  block.expandedByDefault !== false;
+
+                                return (
+                                  <div
+                                    key={block.id}
+                                    className={`rounded-[1.1rem] border border-gray-200 ${block.color || 'bg-white'} ${
+                                      block.textColor || 'text-gray-900'
+                                    } shadow-sm overflow-hidden`}
+                                    style={
+                                      block.customBackground
+                                        ? { background: block.customBackground }
+                                        : undefined
+                                    }
+                                  >
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setExpandedCollections((prev) => ({
+                                          ...prev,
+                                          [block.id]: !isExpanded,
+                                        }))
+                                      }
+                                      className="w-full flex items-center justify-between px-4 py-4 text-left pointer-events-auto"
+                                    >
+                                      <p className="text-sm font-bold">
+                                        {block.title || 'Collection'}
+                                      </p>
+                                      <ChevronDown
+                                        size={16}
+                                        className={`text-gray-500 transition-transform ${
+                                          isExpanded ? 'rotate-180' : ''
+                                        }`}
+                                      />
+                                    </button>
+                                    <AnimatePresence initial={false}>
+                                      {isExpanded && (
+                                        <motion.div
+                                          initial={{ height: 0, opacity: 0 }}
+                                          animate={{ height: 'auto', opacity: 1 }}
+                                          exit={{ height: 0, opacity: 0 }}
+                                          transition={{ duration: 0.22, ease: 'easeInOut' }}
+                                          className="overflow-hidden"
+                                        >
+                                          <div className="px-4 pb-4 space-y-3 border-t border-gray-100 bg-gray-50/80">
+                                            {children.map((child) => {
+                                              const normalizedChild =
+                                                child.type === BlockType.SOCIAL_ICON
+                                                  ? { ...child, colSpan: 9, rowSpan: 2 }
+                                                  : {
+                                                      ...child,
+                                                      colSpan: 9,
+                                                      gridColumn: undefined,
+                                                      gridRow: undefined,
+                                                    };
+                                              const childHeight = Math.max(
+                                                96,
+                                                Math.min(320, child.rowSpan * 64)
+                                              );
+
+                                              return (
+                                                <div
+                                                  key={child.id}
+                                                  className="pointer-events-none pt-3"
+                                                  style={{ height: `${childHeight}px` }}
+                                                >
+                                                  <Block
+                                                    block={{
+                                                      ...normalizedChild,
+                                                      gridColumn: undefined,
+                                                      gridRow: undefined,
+                                                    }}
+                                                    isSelected={false}
+                                                    isDragTarget={false}
+                                                    isDragging={false}
+                                                    enableResize={false}
+                                                    isResizing={false}
+                                                    onResizeStart={handleResizeStart}
+                                                    onEdit={() => {}}
+                                                    onDelete={() => {}}
+                                                    onDragStart={() => {}}
+                                                    onDragEnter={() => {}}
+                                                    onDragEnd={() => {}}
+                                                    onDrop={() => {}}
+                                                    onInlineUpdate={updateBlock}
+                                                    enableTiltEffect={false}
+                                                    previewMode={true}
+                                                    draggableEnabled={false}
+                                                  />
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
+                                  </div>
+                                );
+                              }
+
+                              const normalizedBlock =
+                                block.type === BlockType.SOCIAL_ICON
+                                  ? { ...block, colSpan: 9, rowSpan: 2 }
+                                  : {
+                                      ...block,
+                                      colSpan: 9,
+                                      gridColumn: undefined,
+                                      gridRow: undefined,
+                                    };
+                              const blockHeight = Math.max(96, Math.min(320, block.rowSpan * 64));
+
+                              return (
+                                <div
+                                  key={block.id}
+                                  className="pointer-events-none"
+                                  style={{ height: `${blockHeight}px` }}
+                                >
+                                  <Block
+                                    block={{
+                                      ...normalizedBlock,
+                                      gridColumn: undefined,
+                                      gridRow: undefined,
+                                    }}
+                                    isSelected={false}
+                                    isDragTarget={false}
+                                    isDragging={false}
+                                    enableResize={false}
+                                    isResizing={false}
+                                    onResizeStart={handleResizeStart}
+                                    onEdit={() => {}}
+                                    onDelete={() => {}}
+                                    onDragStart={() => {}}
+                                    onDragEnter={() => {}}
+                                    onDragEnd={() => {}}
+                                    onDrop={() => {}}
+                                    onInlineUpdate={updateBlock}
+                                    enableTiltEffect={false}
+                                    previewMode={true}
+                                    draggableEnabled={false}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {viewMode === 'desktop' && (
+                          <motion.button
+                            type="button"
+                            aria-label="Add more rows to vertical list"
+                            onClick={() => {
+                              setEditingBlockId(null);
+                              setIsSidebarOpen(true);
+                              try {
+                                sessionStorage.removeItem('pendingBlockPosition');
+                              } catch {
+                                // ignore
+                              }
+                            }}
+                            className="w-full h-12 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center gap-2 text-gray-400 hover:border-violet-400 hover:text-violet-500 hover:bg-violet-50/50 transition-all group focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.99 }}
+                          >
+                            <Plus
+                              size={18}
+                              className="group-hover:rotate-90 transition-transform"
+                            />
+                            <span className="text-sm font-medium">Add more blocks</span>
+                          </motion.button>
+                        )}
+                      </div>
+
+                      {profile.showBranding !== false && (
+                        <div className="w-full py-6 text-center text-sm text-gray-500 font-medium">
+                          <p className="inline-flex items-center gap-1">
+                            Made with <span className="text-red-400">♥</span> using{' '}
+                            <span className="font-semibold">OpenBento</span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+
+                  if (viewMode === 'mobile') {
+                    return (
+                      <div className="mockup-phone border-gray-800 border-[14px] rounded-[3rem] h-[800px] w-[375px] shadow-2xl bg-white overflow-hidden relative">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-gray-800 rounded-b-xl z-20"></div>
+                        <div className="h-full w-full overflow-y-auto no-scrollbar relative">
+                          {verticalContent}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return verticalContent;
+                })()
+              ) : viewMode === 'mobile' ? (
                 /* MOBILE FRAME - Matches export mobile layout (single column, stacked) */
                 (() => {
-                  // Sort blocks by grid position (row first, then column) for correct visual order
-                  // This matches the export's sortedBlocks logic
-                  const sortedMobileBlocks = [...blocks].sort((a, b) => {
-                    const aRow = a.gridRow ?? 999;
-                    const bRow = b.gridRow ?? 999;
-                    const aCol = a.gridColumn ?? 999;
-                    const bCol = b.gridColumn ?? 999;
-                    if (aRow !== bRow) return aRow - bRow;
-                    return aCol - bCol;
-                  });
-
                   // Get avatar style
                   const avatarStyle = profile.avatarStyle || {
                     shape: 'rounded',
@@ -1899,7 +2779,7 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
                               gap: `${MOBILE_GRID_CONFIG.gap}px`,
                             }}
                           >
-                            {sortedMobileBlocks.map((block) => {
+                            {sortedBlocks.map((block) => {
                               // Calculate mobile layout based on desktop dimensions
                               const mobileLayout = getMobileLayout(block);
                               return (
@@ -2187,27 +3067,30 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
         </div>
 
         {/* Footer - Centered on full width */}
-        {viewMode === 'desktop' && profile.showBranding !== false && (
-          <footer className="w-full py-10 text-center">
-            <p className="text-sm text-gray-400 font-medium">
-              Made with <span className="text-red-400">♥</span> using{' '}
-              <a
-                href="https://github.com/yoanbernabeu/openbento"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-400 font-semibold hover:text-violet-500 transition-colors"
-              >
-                OpenBento
-              </a>
-            </p>
-          </footer>
-        )}
+        {viewMode === 'desktop' &&
+          selectedPageLayout === 'bento' &&
+          profile.showBranding !== false && (
+            <footer className="w-full py-10 text-center">
+              <p className="text-sm text-gray-400 font-medium">
+                Made with <span className="text-red-400">♥</span> using{' '}
+                <a
+                  href="https://github.com/yoanbernabeu/openbento"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-400 font-semibold hover:text-violet-500 transition-colors"
+                >
+                  OpenBento
+                </a>
+              </p>
+            </footer>
+          )}
       </div>
 
       {/* 2. SIDEBAR EDITOR */}
       <EditorSidebar
         isOpen={isSidebarOpen}
         profile={profile}
+        blocks={blocks}
         addBlock={addBlock}
         editingBlock={editingBlock}
         updateBlock={updateBlock}
@@ -2229,8 +3112,98 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
           }
         }}
         blocks={blocks}
-        setBlocks={handleSetBlocks}
+        onBlocksChange={handleSetBlocks}
       />
+
+      <AnimatePresence>
+        {showLayoutModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowLayoutModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.96, opacity: 0, y: 12 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.96, opacity: 0, y: 12 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-2xl rounded-3xl bg-white shadow-2xl ring-1 ring-black/5 overflow-hidden"
+            >
+              <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100">
+                <div>
+                  <p className="text-sm font-semibold text-violet-600">Page layout</p>
+                  <h2 className="text-2xl font-bold text-gray-900 mt-1">Choose a layout</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Switch the page between the classic Bento grid and a Linktree-style vertical
+                    stack.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowLayoutModal(false)}
+                  className="p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                  aria-label="Close layout chooser"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="grid gap-4 p-6 md:grid-cols-2">
+                <div className="md:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  <span className="font-semibold">Warning:</span> changing layout resets the current
+                  arrangement to a compatible order for the selected layout. Vertical-only blocks,
+                  like collections, are removed when switching back to Bento.
+                </div>
+                {[
+                  {
+                    id: 'bento' as const,
+                    name: 'Bento',
+                    description: 'Classic grid with freeform blocks.',
+                    icon: <Layout size={18} />,
+                  },
+                  {
+                    id: 'vertical-links' as const,
+                    name: 'Vertical Links Layout',
+                    description: 'Centered profile with links stacked vertically.',
+                    icon: <List size={18} />,
+                  },
+                ].map((option) => {
+                  const isActive = selectedPageLayout === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => {
+                        if (selectedPageLayout !== option.id) {
+                          showLayoutResetNotice(option.name);
+                          applyLayoutChange(option.id);
+                        }
+                        setShowLayoutModal(false);
+                      }}
+                      className={`rounded-2xl border p-5 text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        isActive
+                          ? 'border-violet-500 bg-violet-50 shadow-sm'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-700 shadow-sm">
+                          {option.icon}
+                        </div>
+                        {isActive && <Check size={18} className="text-violet-600" />}
+                      </div>
+                      <h3 className="mt-4 text-lg font-bold text-gray-900">{option.name}</h3>
+                      <p className="mt-2 text-sm text-gray-500">{option.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 4. AVATAR CROP MODAL */}
       <ImageCropModal

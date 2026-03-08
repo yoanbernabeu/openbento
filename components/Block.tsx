@@ -91,6 +91,7 @@ interface BlockProps {
   onInlineUpdate?: (block: BlockData) => void;
   enableTiltEffect?: boolean; // Apple TV style 3D tilt on hover
   previewMode?: boolean; // In preview mode, clicks navigate to URLs instead of editing
+  draggableEnabled?: boolean;
 }
 
 const Block: React.FC<BlockProps> = ({
@@ -111,6 +112,7 @@ const Block: React.FC<BlockProps> = ({
   onInlineUpdate,
   enableTiltEffect,
   previewMode,
+  draggableEnabled = true,
 }) => {
   // Apple TV tilt effect
   const {
@@ -444,9 +446,9 @@ const Block: React.FC<BlockProps> = ({
         }}
         layoutId={block.id}
         layout
-        draggable={!isResizing}
+        draggable={draggableEnabled && !isResizing}
         onDragStart={(e) => {
-          if (isResizing) {
+          if (!draggableEnabled || isResizing) {
             e.preventDefault();
             return;
           }
@@ -524,9 +526,9 @@ const Block: React.FC<BlockProps> = ({
         href={url || undefined}
         target="_blank"
         rel="noopener noreferrer"
-        draggable={!isResizing}
+        draggable={draggableEnabled && !isResizing}
         onDragStart={(e) => {
-          if (isResizing) {
+          if (!draggableEnabled || isResizing) {
             e.preventDefault();
             return;
           }
@@ -679,9 +681,9 @@ const Block: React.FC<BlockProps> = ({
         }}
         layoutId={block.id}
         layout
-        draggable={!isResizing}
+        draggable={draggableEnabled && !isResizing}
         onDragStart={(e) => {
-          if (isResizing) {
+          if (!draggableEnabled || isResizing) {
             e.preventDefault();
             return;
           }
@@ -814,9 +816,9 @@ const Block: React.FC<BlockProps> = ({
       }}
       layoutId={block.id}
       layout
-      draggable={!isResizing}
+      draggable={draggableEnabled && !isResizing}
       onDragStart={(e) => {
-        if (isResizing) {
+        if (!draggableEnabled || isResizing) {
           e.preventDefault();
           return;
         }

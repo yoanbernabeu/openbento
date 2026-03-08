@@ -63,7 +63,7 @@ import type { SocialPlatform } from './types';
 export type SocialPlatformOption = {
   id: SocialPlatform;
   label: string;
-  icon: LucideIcon;
+  icon: LucideIcon | IconType;
   brandIcon?: IconType; // Colored brand icon from Simple Icons
   brandColor?: string; // Official brand color
   placeholder: string;
