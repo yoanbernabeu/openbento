@@ -114,6 +114,37 @@ const randomPassword = () => {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const normalizeLinktreeUrl = (input: string): string | null => {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  try {
+    const parsed = /^https?:\/\//i.test(trimmed)
+      ? new URL(trimmed)
+      : new URL(`https://linktr.ee/${trimmed.replace(/^@/, '')}`);
+    const hostname = parsed.hostname.toLowerCase();
+    if (hostname !== 'linktr.ee' && hostname !== 'www.linktr.ee') return null;
+    const username = parsed.pathname.split('/').filter(Boolean)[0];
+    if (!username) return null;
+    return `https://linktr.ee/${username}`;
+  } catch {
+    return null;
+  }
+};
+
+const extractNextData = (html: string) => {
+  const match = html.match(
+    /<script id="__NEXT_DATA__" type="application\/json"[^>]*>([\s\S]*?)<\/script>/
+  );
+  if (!match) return null;
+
+  try {
+    return JSON.parse(match[1]);
+  } catch {
+    return null;
+  }
+};
+
 // Simple setup using just DB password (no CLI login needed)
 const simpleSupabaseSetupPlugin = (): Plugin => {
   return {
@@ -142,6 +173,53 @@ const simpleSupabaseSetupPlugin = (): Plugin => {
             const body = await readJsonBody(req);
             fs.writeFileSync(configPath, JSON.stringify(body, null, 2));
             json(res, 200, { ok: true });
+            return;
+          }
+
+          if (req.method === 'GET' && req.url.startsWith('/__openbento/import/linktree')) {
+            const requestUrl = new URL(req.url, 'http://localhost');
+            const sourceUrl = normalizeLinktreeUrl(requestUrl.searchParams.get('url') || '');
+
+            if (!sourceUrl) {
+              json(res, 400, { ok: false, error: 'Invalid Linktree URL.' });
+              return;
+            }
+
+            try {
+              const upstream = await fetch(sourceUrl, {
+                headers: {
+                  'user-agent': 'OpenBento Linktree Import',
+                  accept: 'text/html,application/xhtml+xml',
+                },
+              });
+
+              if (!upstream.ok) {
+                json(res, upstream.status, {
+                  ok: false,
+                  error: `Linktree returned ${upstream.status}.`,
+                });
+                return;
+              }
+
+              const html = await upstream.text();
+              const nextData = extractNextData(html);
+              const pageProps = nextData?.props?.pageProps;
+
+              if (!pageProps?.account) {
+                json(res, 422, {
+                  ok: false,
+                  error: 'Unable to extract importable data from this Linktree page.',
+                });
+                return;
+              }
+
+              json(res, 200, { ok: true, pageProps, sourceUrl });
+            } catch (error) {
+              json(res, 500, {
+                ok: false,
+                error: `Failed to fetch Linktree page: ${(error as Error).message}`,
+              });
+            }
             return;
           }
 

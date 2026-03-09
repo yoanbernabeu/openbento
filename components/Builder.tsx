@@ -572,6 +572,23 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
     [profile, blocks, setSiteData, autoSave]
   );
 
+  const applyImportedBento = useCallback(
+    (newBento: SavedBento) => {
+      const nextGridVersion = newBento.data.gridVersion ?? GRID_VERSION;
+      const normalizedBlocks = ensureBlocksHavePositions(newBento.data.blocks);
+
+      setActiveBento(newBento);
+      setGridVersion(nextGridVersion);
+      setActiveBentoId(newBento.id);
+      reset({
+        profile: newBento.data.profile,
+        blocks: normalizedBlocks,
+      });
+      setEditingBlockId(null);
+    },
+    [reset]
+  );
+
   // Note: Block positioning is handled when blocks are created (addBlock function)
   // No automatic repositioning to avoid conflicts with user-placed blocks
 
@@ -2229,7 +2246,8 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
           }
         }}
         blocks={blocks}
-        setBlocks={handleSetBlocks}
+        onBlocksChange={handleSetBlocks}
+        onBentoImported={applyImportedBento}
       />
 
       {/* 4. AVATAR CROP MODAL */}
@@ -2269,13 +2287,7 @@ const Builder: React.FC<BuilderProps> = ({ onBack }) => {
       <AIGeneratorModal
         isOpen={showAIGeneratorModal}
         onClose={() => setShowAIGeneratorModal(false)}
-        onBentoImported={(newBento) => {
-          // Reload the app with the new bento
-          setActiveBento(newBento);
-          handleSetProfile(newBento.data.profile);
-          handleSetBlocks(newBento.data.blocks);
-          setGridVersion(newBento.data.gridVersion ?? GRID_VERSION);
-        }}
+        onBentoImported={applyImportedBento}
       />
 
       {/* 7. DEPLOY MODAL */}

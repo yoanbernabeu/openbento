@@ -16,6 +16,7 @@ import {
   Link as LinkIcon,
   Linkedin,
   MessageCircle,
+  Music,
   Newspaper,
   Phone,
   Pin,
@@ -280,7 +281,7 @@ export const SOCIAL_PLATFORM_OPTIONS: SocialPlatformOption[] = [
   {
     id: 'spotify',
     label: 'Spotify',
-    icon: SiSpotify,
+    icon: Music,
     brandIcon: SiSpotify,
     brandColor: '#1DB954',
     placeholder: 'spotify username',

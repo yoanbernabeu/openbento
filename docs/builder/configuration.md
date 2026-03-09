@@ -7,6 +7,7 @@ OpenBento can be customized through environment variables.
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `VITE_ENABLE_LANDING` | Show landing page before builder | `false` |
+| `VITE_ENABLE_IMPORT` | Enable experimental import actions in Settings, including Linktree import | `false` |
 
 ## Landing Page
 
@@ -25,6 +26,24 @@ VITE_ENABLE_LANDING=true npm run dev
 ```bash
 VITE_ENABLE_LANDING=true npm run build
 ```
+
+## Experimental Import
+
+Import actions in **Settings** are disabled by default.
+
+To enable the experimental import UI:
+
+```bash
+VITE_ENABLE_IMPORT=true npm run dev
+```
+
+Or for a production build:
+
+```bash
+VITE_ENABLE_IMPORT=true npm run build
+```
+
+This import flow is experimental. Imported Linktree content may require manual cleanup after import.
 
 ## Data Storage
 

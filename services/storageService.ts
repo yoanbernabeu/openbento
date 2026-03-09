@@ -305,6 +305,7 @@ export const downloadBentoJSON = (bento: SavedBento): void => {
 // Import a bento from JSON
 export const importBentoFromJSON = (json: BentoJSON): SavedBento => {
   const now = Date.now();
+  const profile = json.profile || ({} as UserProfile);
 
   const newBento: SavedBento = {
     id: generateId(), // Always generate new ID to avoid conflicts
@@ -314,14 +315,15 @@ export const importBentoFromJSON = (json: BentoJSON): SavedBento => {
     data: {
       gridVersion: json.gridVersion ?? GRID_VERSION,
       profile: {
-        name: json.profile?.name || 'My Bento',
-        bio: json.profile?.bio || '',
-        avatarUrl: json.profile?.avatarUrl || AVATAR_PLACEHOLDER,
-        theme: json.profile?.theme || 'light',
-        primaryColor: json.profile?.primaryColor || 'blue',
-        showBranding: json.profile?.showBranding ?? true,
-        analytics: json.profile?.analytics || { enabled: false, supabaseUrl: '' },
-        socialAccounts: json.profile?.socialAccounts || [],
+        ...profile,
+        name: profile.name || 'My Bento',
+        bio: profile.bio || '',
+        avatarUrl: profile.avatarUrl || AVATAR_PLACEHOLDER,
+        theme: profile.theme || 'light',
+        primaryColor: profile.primaryColor || 'blue',
+        showBranding: profile.showBranding ?? true,
+        analytics: profile.analytics || { enabled: false, supabaseUrl: '' },
+        socialAccounts: profile.socialAccounts || [],
       },
       blocks: (json.blocks || []).map((b) => ({
         ...b,

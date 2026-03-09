@@ -16,7 +16,7 @@ import {
   Database,
   Globe,
 } from 'lucide-react';
-import type { SocialPlatform, UserProfile, BlockData } from '../types';
+import type { SocialPlatform, UserProfile, BlockData, SavedBento } from '../types';
 import { AVATAR_PLACEHOLDER } from '../constants';
 import ImageCropModal from './ImageCropModal';
 import {
@@ -25,6 +25,9 @@ import {
   SOCIAL_PLATFORM_OPTIONS,
   formatFollowerCount,
 } from '../socialPlatforms';
+import { importLinktreeToBento } from '../services/linktreeImportService';
+
+const ENABLE_IMPORT = import.meta.env.VITE_ENABLE_IMPORT === 'true';
 
 type SettingsModalProps = {
   isOpen: boolean;
@@ -36,6 +39,7 @@ type SettingsModalProps = {
   // For raw JSON editing
   blocks?: BlockData[];
   onBlocksChange?: (blocks: BlockData[]) => void;
+  onBentoImported?: (bento: SavedBento) => void;
 };
 
 type TabType = 'general' | 'social' | 'seo' | 'analytics' | 'json';
@@ -49,6 +53,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onBentoNameChange,
   blocks,
   onBlocksChange,
+  onBentoImported,
 }) => {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [pendingAvatarSrc, setPendingAvatarSrc] = useState<string | null>(null);
@@ -62,6 +67,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   // JSON editor state
   const [jsonText, setJsonText] = useState('');
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [linktreeInput, setLinktreeInput] = useState('');
+  const [linktreeImportState, setLinktreeImportState] = useState<{
+    status: 'loading' | 'success' | 'error';
+    message: string;
+    details?: string[];
+  } | null>(null);
 
   // Supabase Analytics state
   const [supabaseProjectUrl, setSupabaseProjectUrl] = useState('');
@@ -254,6 +265,31 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const handleLinktreeImport = async () => {
+    if (!onBentoImported || !linktreeInput.trim()) return;
+
+    setLinktreeImportState({
+      status: 'loading',
+      message: 'Importing Linktree content...',
+    });
+
+    try {
+      const result = await importLinktreeToBento(linktreeInput);
+      onBentoImported(result.bento);
+      setLinktreeInput('');
+      setLinktreeImportState({
+        status: 'success',
+        message: `${result.importedCount} link(s) imported into a new Bento.`,
+        details: result.warnings,
+      });
+    } catch (error) {
+      setLinktreeImportState({
+        status: 'error',
+        message: (error as Error).message || 'Linktree import failed.',
+      });
+    }
+  };
+
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: 'general', label: 'General', icon: <User size={16} /> },
     { id: 'social', label: 'Social', icon: <Share2 size={16} /> },
@@ -349,6 +385,78 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                           Used as filename when exporting JSON
                         </p>
                       </div>
+
+                      {ENABLE_IMPORT && onBentoImported && (
+                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
+                          <div>
+                            <label className="block text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1.5">
+                              Experimental Import
+                            </label>
+                            <p className="text-sm font-semibold text-gray-900">
+                              Import from Linktree
+                            </p>
+                            <p className="text-xs text-amber-800 mt-1">
+                              This feature is experimental. Some links, media, or custom sections
+                              may not be imported correctly.
+                            </p>
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <input
+                              type="text"
+                              aria-label="Linktree URL or username"
+                              value={linktreeInput}
+                              onChange={(e) => setLinktreeInput(e.target.value)}
+                              placeholder="https://linktr.ee/yourname or yourname"
+                              className="flex-1 bg-white border border-amber-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 focus:outline-none transition-all"
+                            />
+                            <button
+                              type="button"
+                              aria-label="Import from Linktree"
+                              onClick={handleLinktreeImport}
+                              disabled={
+                                !linktreeInput.trim() || linktreeImportState?.status === 'loading'
+                              }
+                              className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              {linktreeImportState?.status === 'loading' ? (
+                                <>
+                                  <Loader2 size={16} className="animate-spin" />
+                                  Importing...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload size={16} />
+                                  Import Linktree
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {linktreeImportState && (
+                            <div
+                              className={`rounded-lg border px-3 py-2 ${
+                                linktreeImportState.status === 'error'
+                                  ? 'bg-red-50 border-red-200 text-red-700'
+                                  : linktreeImportState.status === 'success'
+                                    ? 'bg-green-50 border-green-200 text-green-700'
+                                    : 'bg-white border-amber-200 text-amber-800'
+                              }`}
+                            >
+                              <p className="text-sm font-medium">{linktreeImportState.message}</p>
+                              {linktreeImportState.details?.length ? (
+                                <div className="mt-1 space-y-1">
+                                  {linktreeImportState.details.map((detail) => (
+                                    <p key={detail} className="text-xs">
+                                      {detail}
+                                    </p>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </section>
                   )}
 
