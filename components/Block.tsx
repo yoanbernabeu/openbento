@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { BlockData, BlockType } from '../types';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   Youtube,
   MoveVertical,
@@ -1266,11 +1268,61 @@ const Block: React.FC<BlockProps> = ({
                 </div>
 
                 {block.type === BlockType.TEXT && block.content && (
-                  <p
-                    className={`opacity-70 mt-2 whitespace-pre-wrap leading-relaxed ${textSizes.body}`}
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      p: ({ children }) => (
+                        <p className={`mt-1 ${textSizes.body}`}>{children}</p>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="font-semibold">{children}</strong>
+                      ),
+                      em: ({ children }) => (
+                        <em className="italic">{children}</em>
+                      ),
+                      a: ({ href, children }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 underline hover:text-blue-600"
+                        >
+                          {children}
+                        </a>
+                      ),
+                      code: ({ children }) => (
+                        <code className="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">
+                          {children}
+                        </code>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc list-inside mt-1 space-y-0.5">{children}</ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal list-inside mt-1 space-y-0.5">{children}</ol>
+                      ),
+                      li: ({ children }) => (
+                        <li className={textSizes.body}>{children}</li>
+                      ),
+                      h1: ({ children }) => (
+                        <h1 className="text-lg font-bold mt-2 mb-1">{children}</h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className="text-base font-bold mt-2 mb-1">{children}</h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-sm font-semibold mt-1 mb-1">{children}</h3>
+                      ),
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-2 border-gray-300 pl-2 italic text-gray-600 mt-1">
+                          {children}
+                        </blockquote>
+                      ),
+                      hr: () => <hr className="my-2 border-gray-200" />,
+                    }}
                   >
                     {block.content}
-                  </p>
+                  </ReactMarkdown>
                 )}
               </div>
             </div>
